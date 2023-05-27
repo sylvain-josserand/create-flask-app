@@ -1,0 +1,17 @@
+{% extends "auth/base.html" %}
+{% block title %}Log in{% endblock %}
+{% block content %}
+    <h1>Log in</h1>
+    <form action="/login" method="POST">
+        <div class="form-group">
+            <label class="form-label" for="email">E-mail</label>
+            <input class="form-input" type="text" id="email" name="email" placeholder="name@example.com">
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="password">Password</label>
+            <input class="form-input" type="password" id="password" name="password">
+        </div>
+        <button class="btn btn-default">Log in</button>
+    </form>
+    <p>No account yet? <a href="/signup">Sign up!</a></p>
+{% endblock %}

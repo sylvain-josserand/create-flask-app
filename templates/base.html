@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    {% block head %}
+        <title>{% block title %}Your title here{% endblock %}</title>
+    {% endblock %}
+</head>
+<body>
+<div>
+    <a href="{{ url_for('main.index') }}">Home</a>
+</div>
+<div id="messages">
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <ul class="flashes">
+                {% for message in messages %}
+                    <li>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+</div>
+<div class="container">
+    {% block content %}{% endblock %}
+</div>
+{% block auth %}
+<div>
+    {% if user and user.password_hash %}
+        <a href="{{ url_for('auth.logout') }}">Logout</a>
+    {% else %}
+        <a href="{{ url_for('auth.login') }}">Login</a>
+    or
+        <a href="{{ url_for('auth.signup') }}">Register to save your data</a>
+    {% endif %}
+</div>
+{% endblock %}
+</body>
+</html>
