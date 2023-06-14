@@ -8,7 +8,6 @@ auth = Blueprint("auth", __name__, template_folder="templates")
 
 @auth.route("/signup", methods=["POST", "GET"])
 def signup():
-    SESSION_SECRET_KEY = current_app.config["SESSION_SECRET_KEY"]
     if request.method == "POST":
         errors = []
 
@@ -57,6 +56,7 @@ def signup():
                     )
                 # No need to update the session since the user is already logged in
                 con.close()
+                flash("Account created. Welcome! 🎉")
                 return redirect(request.args.get("next", "/"))
 
         # Show errors and render the signup form again
@@ -91,6 +91,7 @@ def login():
         if errors:
             return render_template("auth/login.html", email=email, password=password)
         else:
+            flash("Logged in. Welcome back! 😊")
             return redirect(request.args.get("next", "/"))
     return render_template("auth/login.html")
 
@@ -102,6 +103,7 @@ def logout():
     if g.user:
         g.user.logout()
         g.user = None
+    flash("Logged out. Bye! 👋")
     return redirect(request.args.get("next", "/"))
 
 
@@ -113,6 +115,7 @@ def profile():
 @auth.route("/user/update", methods=["POST"])
 def user_update():
     g.user.update(email=request.form.get("email"), name=request.form.get("name"))
+    flash("User updated successfully! 🎉")
     return redirect(url_for("auth.profile"))
 
 
@@ -150,6 +153,7 @@ def user_update_password():
             flash(error_message)
     else:
         g.user.update(password_hash=generate_password_hash(new_password))
+        flash("Password updated successfully! 🎉")
     return redirect(url_for("auth.profile"))
 
 
@@ -157,4 +161,5 @@ def user_update_password():
 def user_delete():
     g.user.logout()
     g.user.delete()
+    flash("User deleted successfully. Farewell! 👋")
     return redirect(url_for("main.index"))
