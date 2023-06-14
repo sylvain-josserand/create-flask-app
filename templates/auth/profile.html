@@ -1,0 +1,38 @@
+{% extends "auth/base.html" %}
+{% block title %}Profile{% endblock %}
+{% block content %}
+<h1>Profile</h1>
+<h2>Personal information</h2>
+<form action="{{ url_for('auth.user_update') }}" method="POST">
+    <div class="form-group">
+        <label class="form-label" for="email">E-mail</label>
+        <input class="form-input" id="email" name="email" placeholder="name@example.com" type="text"
+               value="{{ g.user.email }}">
+    </div>
+    <div class="form-group">
+        <label class="form-label" for="name">Nickname</label>
+        <input class="form-input" id="name" name="name" placeholder="Roxxor74" type="text" value="{{ g.user.name }}">
+    </div>
+    <button class="btn btn-default">Save</button>
+</form>
+<h2>Change password</h2>
+<form action="{{ url_for('auth.user_update_password') }}" method="POST">
+    <div class="form-group">
+        <label class="form-label" for="old_password">Old Password</label>
+        <input class="form-input" id="old_password" name="old_password" type="password" value="{{ old_password }}">
+    </div>
+    <div class="form-group">
+        <label class="form-label" for="new_password">New password</label>
+        <input class="form-input" id="new_password" name="new_password" type="password" value="{{ new_password }}">
+    </div>
+    <div class="form-group">
+        <label class="form-label" for="new_password2">Repeat new password</label>
+        <input class="form-input" id="new_password2" name="new_password2" type="password" value="{{ new_password2 }}">
+    </div>
+    <button class="btn btn-default">Change password</button>
+</form>
+<h2>Delete user</h2>
+<form action="{{ url_for('auth.user_delete') }}" method="POST">
+    <button class="btn btn-alert">Delete my user personal account</button>
+</form>
+{% endblock %}

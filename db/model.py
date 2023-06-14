@@ -8,6 +8,10 @@ class Model:
     fields = []  # Override with your fields' names
     table_name = ""  # Override with your table's name
     db_file_name = None  # Override with the name of the database file
+    id = None  # Need to have a unique instance identifier called "id"
+
+    def __init__(self, **kwargs):
+        raise NotImplementedError("Each model must implement its own __init__ method")
 
     @classmethod
     def comma_separated_fields(self):
@@ -30,3 +34,13 @@ class Model:
         if row is None:
             return None
         return cls(**row)
+
+    def update(self, **fields):
+        con = self.connect_to_db()
+        with con:
+            cur = con.execute(
+                f"""UPDATE {self.table_name} SET {', '.join(f'{key} = ?' for key in fields.keys())} WHERE id = ?""",
+                (*fields.values(), self.id),
+            )
+        con.close()
+        return cur.rowcount == 1

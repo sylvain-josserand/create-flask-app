@@ -87,9 +87,12 @@ class User(AuthModel):
 
     def logout(self):
         """Expire all the sessions for this user."""
+        SESSION_SECRET_KEY = current_app.config["SESSION_SECRET_KEY"]
+        now = datetime.now()
+
         con = self.connect_to_db()
+
         with con:
-            now = datetime.now()
             con.execute(
                 "UPDATE session SET expires = ? WHERE user_id = ? AND expires > ?",
                 (
@@ -99,5 +102,10 @@ class User(AuthModel):
                 ),
             )
         con.close()
-        session.pop(current_app.config["SESSION_SECRET_KEY"], None)
-        g.user = None
+        session.pop(SESSION_SECRET_KEY, None)
+
+    def delete(self):
+        con = self.connect_to_db()
+        with con:
+            con.execute("DELETE FROM user WHERE id = ?", (self.id,))
+        con.close()

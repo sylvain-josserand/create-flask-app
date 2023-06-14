@@ -29,11 +29,12 @@ Run the app in development mode with the following command:
  - Databases migration
  - Save guest work upon signup
  - Authentication by email and password
+ - User account management: change name and email, change password, delete
  
 ## To-do list
- - User profile 
- - Password change
  - Reset forgotten password by email
- - Multi-user accounts
+ - Company "multi-user" account management: create, rename, change role and delete
+ - Invite users to company account
+ - Email verification
  - OAuth2 authentication (Google, Facebook, etc.)
  - Automated server deployment with production-ready settings

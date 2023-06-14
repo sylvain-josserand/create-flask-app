@@ -1,4 +1,4 @@
-from flask import current_app, session, redirect, request, render_template, flash, Blueprint, g
+from flask import current_app, session, redirect, request, render_template, flash, Blueprint, g, url_for
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from db.models.auth.user import User
@@ -43,29 +43,19 @@ def signup():
             if user_exists:
                 errors.append("A user with that email already exists. Please use another email or log in if it's you")
             else:
-                # Actually create the user
+                # Actually update the current guest user with the actual user data
                 hashed_password = generate_password_hash(password)
                 with con:
-                    cur = con.execute(
-                        """INSERT INTO user(email, name, password_hash)
-                        VALUES (?, ?, ?)""",
+                    con.execute(
+                        """UPDATE user SET email = ?, name = ?, password_hash = ? WHERE id = ?""",
                         (
                             email,
                             name,
                             hashed_password,
+                            g.user.id,
                         ),
                     )
-
-                    # Update the current guest session with the new user, make sure the session doesn't belong to a user already
-                    con.execute(
-                        """UPDATE session
-                           SET user_id = ?
-                           WHERE session.secret = ?""",
-                        (
-                            cur.lastrowid,
-                            session[SESSION_SECRET_KEY],
-                        ),
-                    )
+                # No need to update the session since the user is already logged in
                 con.close()
                 return redirect(request.args.get("next", "/"))
 
@@ -113,3 +103,58 @@ def logout():
         g.user.logout()
         g.user = None
     return redirect(request.args.get("next", "/"))
+
+
+@auth.route("/profile", methods=["GET"])
+def profile():
+    return render_template("auth/profile.html")
+
+
+@auth.route("/user/update", methods=["POST"])
+def user_update():
+    g.user.update(email=request.form.get("email"), name=request.form.get("name"))
+    return redirect(url_for("auth.profile"))
+
+
+@auth.route("/user/change_password", methods=["POST"])
+def user_update_password():
+    old_password = request.form.get("old_password")
+    new_password = request.form.get("new_password")
+    new_password2 = request.form.get("new_password2")
+
+    errors = []
+
+    # Check old password
+    if old_password:
+        if check_password_hash(g.user.password_hash, old_password):
+            pass  # Old password is present and correct
+        else:
+            errors.append("Old password is incorrect")
+    else:
+        errors.append("Please enter your old password")
+
+    # Check new passwords
+    if new_password and new_password2 and new_password == new_password2:
+        pass  # New passwords are present and match
+    elif not new_password:
+        errors.append("Please enter a new password")
+    elif not new_password2:
+        errors.append("Please enter your new password again")
+    elif new_password != new_password2:
+        errors.append("New passwords don't match")
+    else:
+        errors.append("Unknown error. Please check your inputs and try again")
+
+    if errors:
+        for error_message in errors:
+            flash(error_message)
+    else:
+        g.user.update(password_hash=generate_password_hash(new_password))
+    return redirect(url_for("auth.profile"))
+
+
+@auth.route("/user/delete", methods=["POST"])
+def user_delete():
+    g.user.logout()
+    g.user.delete()
+    return redirect(url_for("main.index"))
