@@ -79,6 +79,7 @@ class User(AuthModel):
             # Update the session to point to the logged-in user
             with con:
                 con.execute("UPDATE session SET user_id = ? WHERE secret = ?", (user.id, session[SESSION_SECRET_KEY]))
+                con.execute("UPDATE user SET last_login = ? WHERE id = ?", (datetime.now(), user.id))
             con.commit()
             g.user = user
             return user, True
