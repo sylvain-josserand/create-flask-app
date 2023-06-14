@@ -30,9 +30,10 @@ Run the app in development mode with the following command:
  - Save guest work upon signup
  - Authentication by email and password
  
-## Work in progress
- - Multi-user accounts
- - Reset forgotten password by email
+## To-do list
+ - User profile 
  - Password change
+ - Reset forgotten password by email
+ - Multi-user accounts
  - OAuth2 authentication (Google, Facebook, etc.)
  - Automated server deployment with production-ready settings
