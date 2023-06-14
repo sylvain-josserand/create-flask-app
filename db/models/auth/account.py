@@ -1,8 +1,6 @@
 import secrets
 from pathlib import Path
 
-import flask
-
 from db.models.auth.auth_model import AuthModel
 
 
@@ -23,19 +21,21 @@ class Account(AuthModel):
         account_db_file_name = Path("data", "accounts", *secret[:6], secret + ".db")
         account_db_file_name.parent.mkdir(parents=True, exist_ok=True)
 
-        con, cur = cls.connect_to_db()
+        con = cls.connect_to_db()
         with con:
-            cur.execute(
+            cur = con.execute(
                 f"INSERT INTO {cls.table_name} (name, account_db_file_name) VALUES (?, ?)",
                 (name, account_db_file_name.as_posix()),
             )
             account_id = cur.lastrowid
-            con.commit()
+        con.close()
         return cls.get_by_id(account_id)
 
     def add_user(self, user, role):
         """Add a user to this account."""
-        con, cur = self.connect_to_db()
-        cur.execute("INSERT INTO user_account (account_id, user_id, role) VALUES (?, ?, ?)", (self.id, user.id, role))
-        con.commit()
+        con = self.connect_to_db()
+        with con:
+            con.execute(
+                "INSERT INTO user_account (account_id, user_id, role) VALUES (?, ?, ?)", (self.id, user.id, role)
+            )
         con.close()

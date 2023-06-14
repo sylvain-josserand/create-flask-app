@@ -11,7 +11,7 @@ class Model:
 
     @classmethod
     def comma_separated_fields(self):
-        return ", ".join(self.fields)
+        return ", ".join(".".join((self.table_name, field)) for field in self.fields)
 
     @classmethod
     def connect_to_db(cls):
@@ -19,12 +19,14 @@ class Model:
 
     @classmethod
     def get_by_id(cls, id):
-        con, cur = cls.connect_to_db()
-        cur.execute(
-            f"SELECT {cls.comma_separated_fields()} FROM {cls.table_name} WHERE id = ?",
-            (id,),
-        )
+        con = cls.connect_to_db()
+        with con:
+            cur = con.execute(
+                f"SELECT {cls.comma_separated_fields()} FROM {cls.table_name} WHERE id = ?",
+                (id,),
+            )
         row = cur.fetchone()
+        con.close()
         if row is None:
             return None
-        return cls(**dict(zip(cls.fields, row)))
+        return cls(**row)

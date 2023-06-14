@@ -27,10 +27,10 @@ Run the app in development mode with the following command:
  - Guest access without signup
  - Separation of account into separate database files
  - Databases migration
-
-## Work in progress
  - Save guest work upon signup
  - Authentication by email and password
+ 
+## Work in progress
  - Multi-user accounts
  - Reset forgotten password by email
  - Password change

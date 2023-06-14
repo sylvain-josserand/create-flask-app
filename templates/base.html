@@ -26,7 +26,7 @@
 </div>
 {% block auth %}
 <div>
-    {% if user and user.password_hash %}
+    {% if g.user and g.user.email %}
         <a href="{{ url_for('auth.logout') }}">Logout</a>
     {% else %}
         <a href="{{ url_for('auth.login') }}">Login</a>

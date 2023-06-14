@@ -56,16 +56,16 @@ def migrate_account(account_id, migrations):
 
 
 def run():
-    # Run auth module migrations first
-    con, cur = connect_to_db(AuthModel.db_file_name)
-
-    # Main database contains the list of all customer accounts' dbs in the "account" table
+    # Auth database contains the list of all customer accounts' db files in the "account" table
     print("Running missing migrations on the auth database.")
 
+    # Run auth module migrations first
     migrate(AuthModel.db_file_name, build_migrations_list("auth"))
 
-    res = cur.execute("SELECT COUNT(*) FROM account")
-    (account_count,) = res.fetchone()
+    con = connect_to_db(AuthModel.db_file_name)
+    with con:
+        cur = con.execute("SELECT COUNT(*) FROM account")
+    (account_count,) = cur.fetchone()
     print(f"Migrating {account_count} accounts.")
 
     migrations = build_migrations_list("accounts")
@@ -79,7 +79,6 @@ def run():
         print("No account.")
 
     print("Done.")
-    con.close()
 
 
 if __name__ == "__main__":
