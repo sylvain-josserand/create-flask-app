@@ -163,3 +163,27 @@ def user_delete():
     g.user.delete()
     flash("User deleted successfully. Farewell! 👋")
     return redirect(url_for("main.index"))
+
+
+@auth.before_app_request
+def create_guest_session_if_needed():
+    from db.models.auth.session import Session
+    from db.models.auth.user import User
+
+    SESSION_SECRET_KEY = current_app.config["SESSION_SECRET_KEY"]
+
+    user = None
+
+    if SESSION_SECRET_KEY in session:
+        # Returns None if session_secret is invalid or expired
+        user = User.get_by_session_secret(session[SESSION_SECRET_KEY])
+
+    if user is None:
+        if SESSION_SECRET_KEY in session:
+            # Session is expired
+            flash("Your session has expired. When using the app as guest, remember to sign in to save your work.")
+        user_id = User.create_guest()
+        db_session = Session.create(user_id)
+        user = User.get_by_id(user_id)
+        session[SESSION_SECRET_KEY] = db_session.secret
+    g.user = user
