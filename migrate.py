@@ -44,7 +44,7 @@ def migrate(db_file_name, migrations):
         print(f"Applying migration {migration_name} to {db_file_name} database...")
         migrate_cur.execute("INSERT INTO migration VALUES(?)", (migration_name,))
         migrate_con.commit()
-        print("Done in", str((perf_counter() - start_time) / 1000.0), "milliseconds.")
+        print("Done in {:.6f} seconds".format(perf_counter() - start_time))
     migrate_con.close()
 
 
