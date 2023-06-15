@@ -22,9 +22,9 @@ except FileNotFoundError:
 
 app.config.update(
     # Flask config values
-    SESSION_COOKIE_SAMESITE="None",
-    SESSION_COOKIE_SECURE=True,
-    REMEMBER_COOKIE_SECURE=True,
+    SESSION_COOKIE_SAMESITE="Lax" if app.config["DEBUG"] else "None",
+    SESSION_COOKIE_SECURE=not app.config["DEBUG"],
+    REMEMBER_COOKIE_SECURE=not app.config["DEBUG"],
     SESSION_PERMANENT=True,
     SESSION_DURATION=timedelta(days=31),
     # Custom config values
