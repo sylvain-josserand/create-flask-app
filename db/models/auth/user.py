@@ -1,3 +1,4 @@
+import secrets
 from datetime import datetime
 
 from flask import current_app, session, g
@@ -10,16 +11,8 @@ class User(AuthModel):
     table_name = "user"
     fields = ("id", "name", "email", "password_hash", "created", "last_login")
 
-    def __init__(self, id, name, email, password_hash, created, last_login):
-        self.id = id
-        self.name = name
-        self.email = email
-        self.password_hash = password_hash
-        self.created = created
-        self.last_login = last_login
-
     @classmethod
-    def create(cls, name, email, password):
+    def insert(cls, name, email, password):
         con = cls.connect_to_db()
         if password is None:
             password_hash = None
@@ -35,13 +28,19 @@ class User(AuthModel):
                     password_hash,
                 ),
             )
-        user_id = cur.lastrowid
+            user_id = cur.lastrowid
+            # Create a personal account for the user
+            cur = con.execute(
+                "INSERT INTO account (account_db_file_name, name) VALUES (?, ?)",
+                (secrets.token_hex(16) + ".db", "Personal"),
+            )
+            account_id = cur.lastrowid
+            # Link the user to the account
+            con.execute(
+                "INSERT INTO user_account (user_id, account_id, role) VALUES (?, ?, ?)", (user_id, account_id, "admin")
+            )
         con.close()
-        return cls.get_by_id(user_id)
-
-    @classmethod
-    def create_guest(cls):
-        return cls.create(name="Guest", email=None, password=None)
+        return user_id
 
     @classmethod
     def get_by_session_secret(cls, secret):
@@ -104,8 +103,48 @@ class User(AuthModel):
         con.close()
         session.pop(SESSION_SECRET_KEY, None)
 
-    def delete(self):
+    @property
+    def account_set(self):
+        from db.models.auth.account import Account
+
         con = self.connect_to_db()
         with con:
-            con.execute("DELETE FROM user WHERE id = ?", (self.id,))
+            cur = con.execute(
+                f"SELECT {Account.comma_separated_fields()} FROM user_account "
+                f"INNER JOIN account ON account.id = user_account.account_id "
+                f"WHERE user_account.user_id = ?",
+                (self.id,),
+            )
+            for row in cur.fetchall():
+                yield Account(**row)
         con.close()
+
+    @property
+    def user_account_set(self):
+        from db.models.auth.user_account import UserAccount
+
+        con = self.connect_to_db()
+        with con:
+            cur = con.execute(
+                f"SELECT {UserAccount.comma_separated_fields()} FROM user_account WHERE user_account.user_id = ?",
+                (self.id,),
+            )
+            for row in cur.fetchall():
+                yield UserAccount(**row)
+        con.close()
+
+    @property
+    def zip_account_set(self):
+        return zip(self.account_set, self.user_account_set)
+
+    @classmethod
+    def create_guest_and_login(cls):
+        from db.models.auth.session import Session
+
+        user_id = cls.insert(name="Guest", email=None, password=None)
+
+        SESSION_SECRET_KEY = current_app.config["SESSION_SECRET_KEY"]
+        db_session = Session.insert(user_id)
+        user = User.get_by_id(user_id)
+        session[SESSION_SECRET_KEY] = db_session.secret
+        return user

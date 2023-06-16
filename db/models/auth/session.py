@@ -12,15 +12,8 @@ class Session(AuthModel):
     table_name = "session"
     fields = ("id", "secret", "user_id", "created", "expires")
 
-    def __init__(self, id, secret, user_id, created, expires):
-        self.id = id
-        self.secret = secret
-        self.user_id = user_id
-        self.created = created
-        self.expires = expires
-
     @classmethod
-    def create(cls, user_id):
+    def insert(cls, user_id):
         con = cls.connect_to_db()
         secret = secrets.token_hex(64)
         expires = datetime.now() + app.config["SESSION_DURATION"]

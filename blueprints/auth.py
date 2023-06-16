@@ -1,14 +1,24 @@
 from flask import current_app, session, redirect, request, render_template, flash, Blueprint, g, url_for
 from werkzeug.security import generate_password_hash, check_password_hash
 
+from blueprints.email import send_email
 from db.models.auth.user import User
+from db.models.auth.user_account import UserAccount
+from db.models.auth.invitation import Invitation
 
 auth = Blueprint("auth", __name__, template_folder="templates")
 
 
 @auth.route("/signup", methods=["POST", "GET"])
 def signup():
+    invitation_secret = request.args.get("invitation_secret", request.form.get("invitation_secret"))
     if request.method == "POST":
+        if g.user.email:
+            # User is already logged in with a non-guest account, let's log them out first
+            # This could happen and cause trouble when accepting an invitation while logged in
+            g.user.logout()
+            # And create a new guest user
+            g.user = User.create_guest_and_login()
         errors = []
 
         email = request.form.get("email")
@@ -30,6 +40,10 @@ def signup():
         if password and password2 and (password != password2):
             password = password2 = None
             errors.append("Passwords don't match. Please try again")
+
+        invitation = None
+        if invitation_secret:
+            invitation = Invitation.get_by_secret(invitation_secret)
 
         if not errors:
             con = User.connect_to_db()
@@ -57,17 +71,26 @@ def signup():
                 # No need to update the session since the user is already logged in
                 con.close()
                 flash("Account created. Welcome! 🎉")
+
+                if invitation_secret and invitation:
+                    invitation.accept(g.user)
+
                 return redirect(request.args.get("next", "/"))
 
         # Show errors and render the signup form again
         for error_message in errors:
             flash(error_message)
         return render_template("auth/signup.html", email=email, name=name, password=password, password2=password2)
+
+    if invitation_secret:
+        return Invitation.render_template("auth/signup.html", invitation_secret=invitation_secret)
     return render_template("auth/signup.html")
 
 
 @auth.route("/login", methods=["POST", "GET"])
 def login():
+    invitation_secret = request.args.get("invitation_secret", request.form.get("invitation_secret"))
+
     if request.method == "POST":
         errors = []
         email = request.form.get("email")
@@ -78,6 +101,11 @@ def login():
         if not password:
             errors.append("Please enter a password")
 
+        invitation = None
+        if invitation_secret:
+            invitation = Invitation.get_by_secret(invitation_secret)
+
+        user = None
         if not errors:
             user, is_password_ok = User.login(email, password)
 
@@ -91,8 +119,13 @@ def login():
         if errors:
             return render_template("auth/login.html", email=email, password=password)
         else:
+            if invitation_secret and invitation:
+                invitation.accept(user)
+
             flash("Logged in. Welcome back! 😊")
             return redirect(request.args.get("next", "/"))
+    if invitation_secret:
+        return Invitation.render_template("auth/login.html", invitation_secret=invitation_secret)
     return render_template("auth/login.html")
 
 
@@ -109,7 +142,10 @@ def logout():
 
 @auth.route("/profile", methods=["GET"])
 def profile():
-    return render_template("auth/profile.html")
+    if g.user.email:
+        # Only display profile to non-guest users
+        return render_template("auth/profile.html")
+    return redirect(url_for("auth.login", next=url_for("auth.profile")))
 
 
 @auth.route("/user/update", methods=["POST"])
@@ -165,9 +201,277 @@ def user_delete():
     return redirect(url_for("main.index"))
 
 
+@auth.route("/account/<int:account_id>/update", methods=["POST"])
+def account_update(account_id):
+    from db.models.auth.account import Account
+    from db.models.auth.user_account import UserAccount
+
+    user_account = UserAccount.select(user_id=g.user.id, account_id=account_id, role="admin")
+    if not user_account:
+        flash("You don't have permission to edit this account")
+        return redirect(url_for("auth.profile"))
+
+    Account.update_by_id(
+        account_id,
+        name=request.form.get("name"),
+    )
+    flash("Account updated successfully! 🎉")
+    return redirect(url_for("auth.profile"))
+
+
+@auth.route("/account/<int:account_id>/delete", methods=["POST"])
+def account_delete(account_id):
+    from db.models.auth.account import Account
+
+    user_account_set = UserAccount.select(user_id=g.user.id, account_id=account_id)
+
+    if not user_account_set:
+        flash("You are not a member of this account. You must be a member with admin rights to delete an account")
+        return redirect(url_for("auth.profile"))
+
+    user_account = user_account_set[0]
+    if user_account.role != "admin":
+        flash("You don't have permission to edit this account. You must be admin to delete an account")
+        return redirect(url_for("auth.profile"))
+
+    constraints = []
+
+    # Make sure each user has at least one account left
+    user_account_count = len(UserAccount.select(user_id=g.user.id))
+    if user_account_count <= 1:
+        constraints.append("You can't delete this account because you would have no accounts left")
+
+    # Make sure there is at least one admin left, unless it's the last account
+    admin_count = len(UserAccount.select(account_id=account_id, role="admin"))
+    # Count the number of users in the account
+    account_user_count = len(UserAccount.select(account_id=account_id))
+
+    if admin_count <= 1 and account_user_count > 1:
+        constraints.append("You can't delete this account because there would be no admins left")
+
+    if constraints:
+        for constraint in constraints:
+            flash(constraint)
+        return redirect(url_for("auth.profile"))
+
+    Account.delete_by_id(account_id)
+    flash("Account deleted successfully! 🎉")
+    return redirect(url_for("auth.profile"))
+
+
+@auth.route("/user_account/<int:user_account_id>/update", methods=["POST"])
+def user_account_update(user_account_id):
+    """Mainly to change role of user on a given account"""
+    from db.models.auth.user_account import UserAccount
+
+    user_account = UserAccount.get_by_id(user_account_id)
+    if not user_account:
+        flash("User account to be changed not found")
+        return redirect(url_for("auth.profile"))
+
+    account_id = user_account.account_id
+
+    # Check if current user has permission to edit this account
+    admin_user_account = UserAccount.select(account_id=account_id, user_id=g.user.id, role="admin")
+    if not admin_user_account:
+        flash("You don't have permission to edit this account")
+        return redirect(url_for("auth.profile"))
+
+    if request.form.get("role") not in UserAccount.role_choices:
+        flash(f"Invalid role. Should be one of {', '.join(UserAccount.role_choices)}")
+        return redirect(url_for("auth.profile"))
+
+    # Make sure there is at least one admin
+    if user_account.role == "admin" and request.form.get("role") != "admin":
+        if len(UserAccount.select(account_id=account_id, role="admin")) <= 1:
+            if user_account.user_id == g.user.id:
+                flash("You can't remove your admin rights because you are the only admin")
+            else:
+                flash("You can't remove this user's admin rights because it is the last admin")
+            return redirect(url_for("auth.profile"))
+
+    UserAccount.update_by_id(
+        user_account.id,
+        role=request.form.get("role"),
+    )
+    flash("User account updated successfully! 🎉")
+    return redirect(url_for("auth.profile"))
+
+
+@auth.route("/user_account/<int:user_account_id>/delete", methods=["POST"])
+def user_account_delete(user_account_id):
+    from db.models.auth.user_account import UserAccount
+
+    user_account = UserAccount.get_by_id(user_account_id)
+    if not user_account:
+        flash("User account to be deleted not found")
+        return redirect(url_for("auth.profile"))
+    user_account.delete()
+    flash("User account deleted successfully! 🎉")
+    return redirect(url_for("auth.profile"))
+
+
+@auth.route("/account/<int:account_id>/invite", methods=["POST"])
+def account_invite(account_id):
+    """Invite a user to join an account"""
+    # Check that the inviting user is an admin of the account
+    from db.models.auth.user_account import UserAccount
+
+    if not UserAccount.select(user_id=g.user.id, account_id=account_id, role="admin"):
+        flash("You don't have permission to invite users to this account")
+        return redirect(url_for("auth.profile"))
+
+    email = request.form.get("email")
+    if not email:
+        flash("You must enter an email address")
+        return redirect(url_for("auth.profile"))
+
+    role = request.form.get("role")
+    if role not in UserAccount.role_choices:
+        flash(f"Invalid role. Should be one of {', '.join(UserAccount.role_choices)}")
+        return redirect(url_for("auth.profile"))
+
+    from db.models.auth.account import Account
+
+    account = Account.get_by_id(account_id)
+
+    # Insert a new invite into the invitation database table
+    invitation_id = Invitation.insert(account_id=account_id, email=email, created_by=g.user.id, role=role)
+    invitation = Invitation.get_by_id(invitation_id)
+
+    # Send an email to the user with a link to accept the invitation
+    send_email(
+        to=email,
+        subject=f"You have been invited to join an account on {current_app.config['APP_NAME']}",
+        html_content=render_template(
+            "email/invitation.html",
+            invitation=invitation,
+            app_name=current_app.config["APP_NAME"],
+        ),
+    )
+    flash("Invitation sent successfully! 🎉")
+    return redirect(url_for("auth.profile"))
+
+
+@auth.route("/invitation/<secret>", methods=["GET"])
+def invitation(secret):
+    invitation = Invitation.get_by_secret(secret)
+    if not invitation:
+        flash("Invalid invitation")
+        return redirect(url_for("auth.profile"))
+
+    return render_template(
+        "auth/invitation.html",
+        invitation=invitation,
+        from_email=current_app.config["FROM_EMAIL"],
+    )
+
+
+@auth.route("/invitation_accept", methods=["POST"])
+def invitation_accept():
+    invitation_secret = request.form.get("invitation_secret")
+
+    invitation = Invitation.get_by_secret(invitation_secret)
+    if not invitation:
+        flash("Invalid invitation")
+        return redirect(url_for("auth.profile"))
+
+    # Check if the user already has an account
+    from db.models.auth.user import User
+
+    invited_users = User.select(email=invitation.email)
+    if not invited_users:
+        flash("You must create an account first")
+        return redirect(url_for("auth.signup", invitation_secret=invitation_secret))
+
+    # Check if the user is not already a member of the account
+    from db.models.auth.user_account import UserAccount
+
+    user_account = UserAccount.select(
+        user_id=invited_users[0].id,
+        account_id=invitation.account_id,
+    )
+    if user_account:
+        flash("There is already such a member in this account")
+        return redirect(url_for("auth.profile"))
+
+    # From here on, the user has an account
+    invited_user = invited_users[0]
+    if g.user.id == invited_user.id:
+        # The invited user is the current user: accept the invitation by adding the user to the account
+        from db.models.auth.user_account import UserAccount
+
+        UserAccount.insert(user_id=invited_user.id, account_id=invitation.account_id, role=invitation.role)
+
+        invitation.update(status="accepted")
+        flash("Invitation accepted. Welcome to the team! 🎉")
+
+        return redirect(url_for("auth.profile"))
+
+    # The invited user is not the current user: log out the current user and log in the invited user
+    g.user.logout()
+    flash("You have been logged out. Please log in with the invited account to accept the invitation.")
+    return redirect(url_for("auth.login", invitation_secret=invitation_secret))
+
+
+@auth.route("/invitation_decline", methods=["POST"])
+def invitation_decline():
+    invitation_secret = request.form.get("invitation_secret")
+
+    invitation = Invitation.get_by_secret(invitation_secret)
+
+    if not invitation:
+        flash("Invalid invitation")
+        return redirect(url_for("auth.profile"))
+
+    # Set the invitation status to declined
+    invitation.update(status="declined")
+    flash("Invitation successfully declined 🎉")
+
+    return redirect(url_for("auth.profile"))
+
+
+@auth.route("/account_create", methods=["POST"])
+def account_create():
+    from db.models.auth.account import Account
+    from db.models.auth.user_account import UserAccount
+
+    account = Account.insert(name=request.form.get("name"))
+    UserAccount.insert(account_id=account.id, user_id=g.user.id, role="admin")
+    flash("Account created successfully! 🎉")
+    return redirect(url_for("auth.profile"))
+
+
+@auth.route("/invitation_delete/<int:invitation_id>", methods=["POST"])
+def invitation_delete(invitation_id):
+    if not invitation_id:
+        flash("No invitation ID")
+        return redirect(url_for("auth.profile"))
+
+    invitation = Invitation.get_by_id(invitation_id)
+    if not invitation:
+        flash("Non-existent invitation ID")
+        return redirect(url_for("auth.profile"))
+
+    from db.models.auth.account import Account
+
+    account = Account.get_by_id(invitation.account_id)
+
+    # Check that the inviting user is an admin of the account
+    from db.models.auth.user_account import UserAccount
+
+    if not UserAccount.select(user_id=g.user.id, account_id=account.id, role="admin"):
+        flash("You don't have permission to delete this invitation")
+        return redirect(url_for("auth.profile"))
+
+    Invitation.delete_by_id(invitation_id)
+    flash("Invitation deleted successfully! 🎉")
+    return redirect(url_for("auth.profile"))
+
+
+# Run this function before every request
 @auth.before_app_request
 def create_guest_session_if_needed():
-    from db.models.auth.session import Session
     from db.models.auth.user import User
 
     SESSION_SECRET_KEY = current_app.config["SESSION_SECRET_KEY"]
@@ -182,8 +486,7 @@ def create_guest_session_if_needed():
         if SESSION_SECRET_KEY in session:
             # Session is expired
             flash("Your session has expired. When using the app as guest, remember to sign in to save your work.")
-        user_id = User.create_guest()
-        db_session = Session.create(user_id)
-        user = User.get_by_id(user_id)
-        session[SESSION_SECRET_KEY] = db_session.secret
+
+        user = User.create_guest_and_login()
+
     g.user = user

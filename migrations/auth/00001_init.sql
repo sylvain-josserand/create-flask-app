@@ -35,3 +35,18 @@ CREATE TABLE IF NOT EXISTS session
     expires TEXT                              NOT NULL,                           -- It's a datetime. Don't delete, expire instead
     FOREIGN KEY (user_id) REFERENCES user (id) ON UPDATE CASCADE ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS invitation
+(
+    id         INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    secret     TEXT                              NOT NULL UNIQUE,  -- The secret is used to identify the invitation
+    email      TEXT                              NOT NULL,
+    created_by INTEGER                           NOT NULL,
+    account_id INTEGER                           NOT NULL,
+    role       TEXT                              NOT NULL CHECK (role IN ('admin', 'user', 'read-only')),
+    status     TEXT                              NOT NULL default 'pending' CHECK (status IN ('pending', 'accepted', 'declined')),
+    created    TEXT                              NOT NULL default current_timestamp, -- It's a datetime
+    UNIQUE (email, account_id),
+    FOREIGN KEY (account_id) REFERENCES account (id) ON UPDATE CASCADE ON DELETE CASCADE,
+    FOREIGN KEY (created_by) REFERENCES user (id) ON UPDATE CASCADE ON DELETE CASCADE
+);

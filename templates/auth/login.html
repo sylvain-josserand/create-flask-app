@@ -2,7 +2,10 @@
 {% block title %}Log in{% endblock %}
 {% block content %}
     <h1>Log in</h1>
-    <form action="/login" method="POST">
+    <form action="" method="POST">
+        {% if invitation_secret %}
+        <input type="hidden" name="invitation_secret" value="{{ invitation_secret }}">
+        {% endif %}
         <div class="form-group">
             <label class="form-label" for="email">E-mail</label>
             <input class="form-input" type="text" id="email" name="email" value="{{ email }}" placeholder="name@example.com">

@@ -30,10 +30,10 @@ Run the app in development mode with the following command:
  - Save guest work upon signup
  - Authentication by email and password
  - User account management: change name and email, change password, delete
+ - Company "multi-user" account management: create, rename and delete account, change role, invite user
  
 ## To-do list
  - Reset forgotten password by email
- - Company "multi-user" account management: create, rename, change role and delete
  - Invite users to company account
  - Email verification
  - OAuth2 authentication (Google, Facebook, etc.)

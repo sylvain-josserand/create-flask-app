@@ -1,0 +1,20 @@
+<html lang="en">
+    <body>
+        <h1>Invitation</h1>
+        <p>
+            You have been invited to join the company account {{ invitation.account.name }} on <a href="{{ url_for('main.index', _external=True) }}">{{ app_name }}</a>.
+        </p>
+        <p>
+            Please click on the following link to review the invitation:
+            <a href="{{ url_for('auth.invitation', secret=invitation.secret, _external=True) }}">
+                {{ url_for('auth.invitation', secret=invitation.secret, _external=True) }}
+            </a>
+        </p>
+        <p>If you don't want to join the company, please ignore this email or click the link above and then select "decline".</p>
+        <p>
+            Best regards,
+            <br/>
+            The {{ app_name }} team
+        </p>
+    </body>
+</html>

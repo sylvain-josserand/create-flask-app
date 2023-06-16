@@ -1,0 +1,25 @@
+{% extends "auth/base.html" %}
+{% block title %}Invitation{% endblock %}
+{% block content %}
+<h1>Invitation</h1>
+<p>
+    You have been invited to join the company account <b>{{ invitation.account.name }}</b> by {{ invitation.inviter.name }} ({{ invitation.inviter.email }}).
+</p>
+<p>
+    Your initial role: {{ invitation.role }}.
+</p>
+<p>
+    <form action="{{ url_for('auth.invitation_decline') }}" method="POST">
+        <input type="hidden" name="invitation_secret" value="{{ invitation.secret }}">
+        <button class="btn btn-alert">Decline the invitation</button>
+    </form>
+<br/>
+    <form action="{{ url_for('auth.invitation_accept') }}" method="POST">
+        <input type="hidden" name="invitation_secret" value="{{ invitation.secret }}">
+        <button class="btn btn-alert">Accept the invitation</button>
+    </form>
+</p>
+<p>
+    Please signal abuse to <a href="mailto:{{ from_email }}">{{ from_email }}</a>.
+</p>
+{% endblock %}
