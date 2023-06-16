@@ -31,10 +31,10 @@ Run the app in development mode with the following command:
  - Authentication by email and password
  - User account management: change name and email, change password, delete
  - Company "multi-user" account management: create, rename and delete account, change role, invite user
- 
+ - Invite users to company account
+
 ## To-do list
  - Reset forgotten password by email
- - Invite users to company account
  - Email verification
  - OAuth2 authentication (Google, Facebook, etc.)
  - Automated server deployment with production-ready settings
