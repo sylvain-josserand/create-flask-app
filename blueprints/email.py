@@ -1,5 +1,3 @@
-import os
-
 from flask import Blueprint, current_app
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
@@ -20,5 +18,4 @@ def send_email(to, subject, html_content):
 
     sg = SendGridAPIClient(SENDGRID_API_KEY)
     response = sg.send(message)
-    print(response.status_code)
     return response

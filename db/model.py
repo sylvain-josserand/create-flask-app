@@ -39,13 +39,33 @@ class Model:
     def select(cls, **kwargs):
         con = cls.connect_to_db()
         with con:
-            cur = con.execute(
-                f"SELECT {cls.comma_separated_fields()} FROM {cls.table_name} WHERE {' AND '.join(f'{key} = ?' for key in kwargs.keys())}",
-                tuple(kwargs.values()),
-            )
+            if kwargs:
+                cur = con.execute(
+                    f"SELECT {cls.comma_separated_fields()} FROM {cls.table_name} WHERE {' AND '.join(f'{key} = ?' for key in kwargs.keys())}",
+                    tuple(kwargs.values()),
+                )
+            else:
+                cur = con.execute(f"SELECT {cls.comma_separated_fields()} FROM {cls.table_name}")
+
         rows = cur.fetchall()
         con.close()
         return [cls(**row) for row in rows]
+
+    @classmethod
+    def count(cls, **kwargs):
+        con = cls.connect_to_db()
+        with con:
+            if kwargs:
+                cur = con.execute(
+                    f"SELECT COUNT(*) FROM {cls.table_name} WHERE {' AND '.join(f'{key} = ?' for key in kwargs.keys())}",
+                    tuple(kwargs.values()),
+                )
+            else:
+                cur = con.execute(f"SELECT COUNT(*) FROM {cls.table_name}")
+
+        row = cur.fetchone()
+        con.close()
+        return row[0]
 
     @classmethod
     def get_by_id(cls, id):

@@ -1,6 +1,8 @@
 import secrets
 from pathlib import Path
 
+from flask import current_app
+
 from db.models.auth.auth_model import AuthModel
 
 
@@ -61,7 +63,8 @@ class Account(AuthModel):
     @classmethod
     def insert(cls, name):
         secret = secrets.token_hex(16)
-        account_db_file_name = Path("data", "accounts", *secret[:6], secret + ".db")
+        account_db_file_name = Path(current_app.config["DATA_DIR"].resolve(), "accounts", *secret[:6], secret + ".db")
+
         account_db_file_name.parent.mkdir(parents=True, exist_ok=True)
 
         con = cls.connect_to_db()

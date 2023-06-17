@@ -23,6 +23,12 @@ Run the app in development mode with the following command:
 
 ```FLASK_ENV=development FLASK_DEBUG=true flask run```
 
+### Test the app
+
+Run the tests with the following command:
+
+```python test.py```
+
 ## Completed features
  - Guest access without signup
  - Separation of account into separate database files
@@ -32,6 +38,7 @@ Run the app in development mode with the following command:
  - User account management: change name and email, change password, delete
  - Company "multi-user" account management: create, rename and delete account, change role
  - Invite users to company account
+ - 80% test coverage
 
 ## To-do list
  - Reset forgotten password by email

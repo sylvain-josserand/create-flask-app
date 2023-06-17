@@ -17,7 +17,7 @@ class User(AuthModel):
         if password is None:
             password_hash = None
         else:
-            password_hash = generate_password_hash(password)
+            password_hash = generate_password_hash(password, method="scrypt")
 
         with con:
             cur = con.execute(

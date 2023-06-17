@@ -23,7 +23,7 @@ def signup():
 
         email = request.form.get("email")
         if not email:
-            errors.append("Please enter an email")
+            errors.append("Please enter a valid email address")
 
         name = request.form.get("name")
         if not name:
@@ -57,7 +57,7 @@ def signup():
                 errors.append("A user with that email already exists. Please use another email or log in if it's you")
             else:
                 # Actually update the current guest user with the actual user data
-                hashed_password = generate_password_hash(password)
+                hashed_password = generate_password_hash(password, method="scrypt")
                 with con:
                     con.execute(
                         """UPDATE user SET email = ?, name = ?, password_hash = ? WHERE id = ?""",
@@ -70,6 +70,8 @@ def signup():
                     )
                 # No need to update the session since the user is already logged in
                 con.close()
+                # But don't forget to update g.user
+                g.user = User.get_by_id(g.user.id)
                 flash("Account created. Welcome! 🎉")
 
                 if invitation_secret and invitation:
@@ -80,7 +82,7 @@ def signup():
         # Show errors and render the signup form again
         for error_message in errors:
             flash(error_message)
-        return render_template("auth/signup.html", email=email, name=name, password=password, password2=password2)
+        return render_template("auth/signup.html", email=email, name=name, password=password, password2=password2), 401
 
     if invitation_secret:
         return Invitation.render_template("auth/signup.html", invitation_secret=invitation_secret)
@@ -95,7 +97,7 @@ def login():
         errors = []
         email = request.form.get("email")
         if not email:
-            errors.append("Please enter an email")
+            errors.append("Please enter a valid email address")
 
         password = request.form.get("password")
         if not password:
@@ -117,7 +119,7 @@ def login():
         for error_message in errors:
             flash(error_message)
         if errors:
-            return render_template("auth/login.html", email=email, password=password)
+            return render_template("auth/login.html", email=email, password=password), 401
         else:
             if invitation_secret and invitation:
                 invitation.accept(user)
@@ -188,7 +190,7 @@ def user_update_password():
         for error_message in errors:
             flash(error_message)
     else:
-        g.user.update(password_hash=generate_password_hash(new_password))
+        g.user.update(password_hash=generate_password_hash(new_password, method="scrypt"))
         flash("Password updated successfully! 🎉")
     return redirect(url_for("auth.profile"))
 
@@ -240,14 +242,6 @@ def account_delete(account_id):
     user_account_count = len(UserAccount.select(user_id=g.user.id))
     if user_account_count <= 1:
         constraints.append("You can't delete this account because you would have no accounts left")
-
-    # Make sure there is at least one admin left, unless it's the last account
-    admin_count = len(UserAccount.select(account_id=account_id, role="admin"))
-    # Count the number of users in the account
-    account_user_count = len(UserAccount.select(account_id=account_id))
-
-    if admin_count <= 1 and account_user_count > 1:
-        constraints.append("You can't delete this account because there would be no admins left")
 
     if constraints:
         for constraint in constraints:
@@ -306,6 +300,14 @@ def user_account_delete(user_account_id):
     if not user_account:
         flash("User account to be deleted not found")
         return redirect(url_for("auth.profile"))
+
+    # Make sure there is at least one admin left in the group at all times, to prevent lockout
+    admin_count = len(UserAccount.select(account_id=user_account.account_id, role="admin"))
+
+    if user_account.role == "admin" and admin_count <= 1:
+        flash("You can't remove this user from this account because there would be no admins left")
+        return redirect(url_for("auth.profile"))
+
     user_account.delete()
     flash("User account deleted successfully! 🎉")
     return redirect(url_for("auth.profile"))
