@@ -1,1 +1,5 @@
-Flask==2.3.2
+# Flask is a micro web framework
+Flask==2.3.*
+
+# Sendgrid is a transactional email service
+sendgrid==6.10.*
