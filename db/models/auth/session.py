@@ -15,7 +15,6 @@ class Session(AuthModel):
     @classmethod
     def insert(cls, user_id):
         con = cls.connect_to_db()
-        secret = secrets.token_hex(64)
         expires = datetime.now() + app.config["SESSION_DURATION"]
 
         with con:
@@ -23,9 +22,19 @@ class Session(AuthModel):
                 f"INSERT INTO {cls.table_name} (user_id, secret, expires) VALUES (?, ?, ?)",
                 (
                     user_id,
-                    secret,
+                    Session.generate_secret(),
                     expires,
                 ),
             )
         con.close()
-        return cls.get_by_id(cur.lastrowid)
+        return cur.lastrowid
+
+    @property
+    def user(self):
+        from db.models.auth.user import User
+
+        return User.get_by_id(self.user_id)
+
+    @classmethod
+    def generate_secret(cls):
+        return secrets.token_hex(64)

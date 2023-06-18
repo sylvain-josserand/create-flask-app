@@ -12,12 +12,18 @@ class User(AuthModel):
     fields = ("id", "name", "email", "password_hash", "created", "last_login")
 
     @classmethod
+    def generate_password_hash(cls, password):
+        # Tests run slow with default hash algorithm PBKDF2
+        # We're using scrypt here so that tests run faster, and our app is still secure (compared to sha256)
+        return generate_password_hash(password, method="scrypt")
+
+    @classmethod
     def insert(cls, name, email, password):
         con = cls.connect_to_db()
         if password is None:
             password_hash = None
         else:
-            password_hash = generate_password_hash(password, method="scrypt")
+            password_hash = cls.generate_password_hash(password)
 
         with con:
             cur = con.execute(
@@ -144,7 +150,8 @@ class User(AuthModel):
         user_id = cls.insert(name="Guest", email=None, password=None)
 
         SESSION_SECRET_KEY = current_app.config["SESSION_SECRET_KEY"]
-        db_session = Session.insert(user_id)
+        db_session_id = Session.insert(user_id)
+        db_session = Session.get_by_id(db_session_id)
         user = User.get_by_id(user_id)
         session[SESSION_SECRET_KEY] = db_session.secret
         return user

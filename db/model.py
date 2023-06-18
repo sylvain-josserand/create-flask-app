@@ -52,6 +52,13 @@ class Model:
         return [cls(**row) for row in rows]
 
     @classmethod
+    def select_one(cls, **kwargs):
+        result = cls.select(**kwargs)
+        if len(result) > 1:
+            raise ValueError(f"Multiple rows returned for {kwargs}")
+        return result[0] if result else None
+
+    @classmethod
     def count(cls, **kwargs):
         con = cls.connect_to_db()
         with con:

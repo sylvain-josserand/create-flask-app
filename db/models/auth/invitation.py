@@ -27,10 +27,14 @@ class Invitation(AuthModel):
         return Account.get_by_id(self.account_id)
 
     @classmethod
+    def generate_secret(cls):
+        return secrets.token_hex(64)
+
+    @classmethod
     def insert(cls, **fields):
         if "secret" not in fields:
             # Generate a secret if none is provided
-            fields["secret"] = secrets.token_hex(64)
+            fields["secret"] = cls.generate_secret()
         return super().insert(**fields)
 
     @classmethod

@@ -39,9 +39,9 @@ Run the tests with the following command:
  - Company "multi-user" account management: create, rename and delete account, change role
  - Invite users to company account
  - 80% test coverage
+ - Reset forgotten password by email
 
 ## To-do list
- - Reset forgotten password by email
  - Email verification
  - OAuth2 authentication (Google, Facebook, etc.)
  - Automated server deployment with production-ready settings

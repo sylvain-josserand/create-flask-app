@@ -22,6 +22,73 @@ class TestCase(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.app.config["DATA_DIR"])
 
+    def test_integration(self):
+        """Run all subtests one after the other"""
+        with self.subTest("Test guest access"):
+            self._test_guest_access()
+        with self.subTest("Sign up"):
+            self._test_signup()
+        with self.subTest("Fail to sign up with existing user"):
+            self._test_signup_user_exists()
+        with self.subTest("Log out"):
+            self._test_logout()
+        with self.subTest("Fail to sign up with existing user again, after logout"):
+            self._test_signup_user_exists()
+        with self.subTest("Fail to sign up with missing data"):
+            self._test_signup_missing_data()
+        with self.subTest("Fail to sign up with passwords that don't match"):
+            self._signup_passwords_dont_match()
+        with self.subTest("Fail to log in with unknown user"):
+            self._test_login_wrong_email()
+        with self.subTest("Fail to log in with wrong password"):
+            self._test_login_wrong_password()
+        with self.subTest("Fail to log in with no data"):
+            self._test_login_missing_data()
+        with self.subTest("Successful log in"):
+            self._test_login()
+        with self.subTest("Create account"):
+            self._test_create_account()
+        with self.subTest("Invite user"):
+            self._test_invite_user()
+        with self.subTest("Accept invitation: sign up"):
+            self._test_accept_invitation_signup()
+        with self.subTest("Delete account and fail because not admin"):
+            self._test_delete_account_fail_not_admin()
+        with self.subTest("Log in with the admin user"):
+            self._test_login()
+        with self.subTest("Delete account and succeed"):
+            self._test_delete_account_success()
+        with self.subTest("Create the account again"):
+            self._test_create_account()
+        with self.subTest("Invite the user again"):
+            self._test_invite_user()
+        with self.subTest("Accept invitation again, but no need to signup: just login this time"):
+            self._test_accept_invitation_login()
+        with self.subTest("Log out"):
+            self._test_logout()
+        with self.subTest("Log in with the admin user"):
+            self._test_login()
+        with self.subTest("Give admin right to the invitee"):
+            self._test_give_admin_rights()
+        with self.subTest("Log out"):
+            self._test_logout()
+        with self.subTest("Request a password reset with an unknown email"):
+            self._test_request_password_reset_unknown_email()
+        with self.subTest("Request a password reset with a known email"):
+            self._test_request_password_reset_known_email()
+        with self.subTest("Try to reset the password with an invalid secret"):
+            self._test_reset_password_invalid_secret()
+        with self.subTest("Reset the password with a valid secret but no password"):
+            self._test_reset_password_valid_secret_no_password()
+        with self.subTest("Reset the password with a valid secret but non-matching password"):
+            self._test_reset_password_valid_secret_no_password_match()
+        with self.subTest("Reset the password with a valid secret"):
+            self._test_reset_password_valid_secret()
+        with self.subTest("Try to log in with the old password"):
+            self._test_login_old_password()
+        with self.subTest("Log in with the new password"):
+            self._test_login_new_password()
+
     def _test_guest_access(self):
         """Test guest access"""
         from db.models.auth.account import Account
@@ -304,54 +371,123 @@ class TestCase(unittest.TestCase):
         response = self.client.get(response.location)
         self.assertIn("Account deleted successfully!", response.text)
 
-    def test_integration(self):
-        """Run all subtests one after the other"""
-        with self.subTest("Test guest access"):
-            self._test_guest_access()
-        with self.subTest("Sign up"):
-            self._test_signup()
-        with self.subTest("Fail to sign up with existing user"):
-            self._test_signup_user_exists()
-        with self.subTest("Log out"):
-            self._test_logout()
-        with self.subTest("Fail to sign up with existing user again, after logout"):
-            self._test_signup_user_exists()
-        with self.subTest("Fail to sign up with missing data"):
-            self._test_signup_missing_data()
-        with self.subTest("Fail to sign up with passwords that don't match"):
-            self._signup_passwords_dont_match()
-        with self.subTest("Fail to log in with unknown user"):
-            self._test_login_wrong_email()
-        with self.subTest("Fail to log in with wrong password"):
-            self._test_login_wrong_password()
-        with self.subTest("Fail to log in with no data"):
-            self._test_login_missing_data()
-        with self.subTest("Successful log in"):
-            self._test_login()
-        with self.subTest("Create account"):
-            self._test_create_account()
-        with self.subTest("Invite user"):
-            self._test_invite_user()
-        with self.subTest("Accept invitation: sign up"):
-            self._test_accept_invitation_signup()
-        with self.subTest("Delete account and fail because not admin"):
-            self._test_delete_account_fail_not_admin()
-        with self.subTest("Log in with the admin user"):
-            self._test_login()
-        with self.subTest("Delete account and succeed"):
-            self._test_delete_account_success()
-        with self.subTest("Create the account again"):
-            self._test_create_account()
-        with self.subTest("Invite the user again"):
-            self._test_invite_user()
-        with self.subTest("Accept invitation again, but no need to signup: just login this time"):
-            self._test_accept_invitation_login()
-        with self.subTest("Log out"):
-            self._test_logout()
-        with self.subTest("Log in with the admin user"):
-            self._test_login()
-        with self.subTest("Give admin right to the invitee"):
-            self._test_give_admin_rights()
+    def _test_request_password_reset_unknown_email(self):
+        response = self.client.post(
+            "/forgotten_password",
+            data=dict(
+                email="unknown@localhost",
+            ),
+            follow_redirects=False,
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.location, "/forgotten_password")
+        # Follow the redirect manually
+        response = self.client.get(response.location)
+        self.assertIn("No user with this email", response.text)
+
+    def _test_request_password_reset_known_email(self):
+        from db.models.auth.session import Session
+
+        max_session_id = 0
+        for session in Session.select():
+            max_session_id = max(max_session_id, session.id)
+
+        with patch("blueprints.email.SendGridAPIClient") as mock_send_email:
+            response = self.client.post(
+                "/forgotten_password",
+                data=dict(
+                    email="invitee@localhost",
+                ),
+                follow_redirects=False,
+            )
+        mock_send_email.assert_called_once()
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.location, "/login")
+        # Follow the redirect manually
+        response = self.client.get(response.location)
+        self.assertIn("Email sent. Please check your inbox", response.text)
+        self.reset_password_session = Session.get_by_id(max_session_id + 1)
+
+    def _test_reset_password_invalid_secret(self):
+        response = self.client.get(
+            f"/reset_password?secret={self.reset_password_session.secret}ù",
+            follow_redirects=False,
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.location, "/login")
+        # Follow the redirect manually
+        response = self.client.get(response.location)
+        self.assertIn("Invalid reset password link", response.text)
+
+    def _test_reset_password_valid_secret_no_password(self):
+        response = self.client.post(
+            f"/reset_password",
+            data={
+                "secret": self.reset_password_session.secret,
+            },
+            follow_redirects=False,
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Please enter a password", response.text)
+        self.assertIn("Please confirm your password", response.text)
+
+    def _test_reset_password_valid_secret_no_password_match(self):
+        response = self.client.post(
+            f"/reset_password",
+            data={
+                "secret": self.reset_password_session.secret,
+                "password": "tutu",
+                "password2": "titi",
+            },
+            follow_redirects=False,
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Passwords don&#39;t match", response.text)
+
+    def _test_reset_password_valid_secret(self):
+        from db.models.auth.user import User
+
+        response = self.client.post(
+            f"/reset_password",
+            data={
+                "secret": self.reset_password_session.secret,
+                "password": "tutu",
+                "password2": "tutu",
+            },
+            follow_redirects=False,
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.location, "/")
+        # Follow the redirect manually
+        response = self.client.get(response.location)
+        self.assertIn("Password updated successfully!", response.text)
+
+    def _test_login_old_password(self):
+        response = self.client.post(
+            "/login",
+            data=dict(
+                email="invitee@localhost",
+                password="toto",
+            ),
+            follow_redirects=False,
+        )
+        self.assertEqual(response.status_code, 401)
+        self.assertIn("Incorrect password", response.text)
+
+    def _test_login_new_password(self):
+        response = self.client.post(
+            "/login",
+            data=dict(
+                email="invitee@localhost",
+                password="tutu",
+            ),
+            follow_redirects=False,
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.location, "/")
+        # Follow the redirect manually
+        response = self.client.get(response.location)
+        self.assertIn("Logged in. Welcome back!", response.text)
 
 
 if __name__ == "__main__":

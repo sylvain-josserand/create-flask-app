@@ -1,7 +1,10 @@
+from datetime import datetime
+
 from flask import current_app, session, redirect, request, render_template, flash, Blueprint, g, url_for
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import check_password_hash
 
 from blueprints.email import send_email
+from db.models.auth.session import Session
 from db.models.auth.user import User
 from db.models.auth.user_account import UserAccount
 from db.models.auth.invitation import Invitation
@@ -57,7 +60,7 @@ def signup():
                 errors.append("A user with that email already exists. Please use another email or log in if it's you")
             else:
                 # Actually update the current guest user with the actual user data
-                hashed_password = generate_password_hash(password, method="scrypt")
+                hashed_password = User.generate_password_hash(password)
                 with con:
                     con.execute(
                         """UPDATE user SET email = ?, name = ?, password_hash = ? WHERE id = ?""",
@@ -190,7 +193,7 @@ def user_update_password():
         for error_message in errors:
             flash(error_message)
     else:
-        g.user.update(password_hash=generate_password_hash(new_password, method="scrypt"))
+        g.user.update(password_hash=User.generate_password_hash(new_password))
         flash("Password updated successfully! 🎉")
     return redirect(url_for("auth.profile"))
 
@@ -333,22 +336,20 @@ def account_invite(account_id):
         flash(f"Invalid role. Should be one of {', '.join(UserAccount.role_choices)}")
         return redirect(url_for("auth.profile"))
 
-    from db.models.auth.account import Account
-
-    account = Account.get_by_id(account_id)
-
     # Insert a new invite into the invitation database table
     invitation_id = Invitation.insert(account_id=account_id, email=email, created_by=g.user.id, role=role)
     invitation = Invitation.get_by_id(invitation_id)
 
+    APP_NAME = current_app.config["APP_NAME"]
+
     # Send an email to the user with a link to accept the invitation
     send_email(
         to=email,
-        subject=f"You have been invited to join an account on {current_app.config['APP_NAME']}",
+        subject=f"You have been invited to join an account on {APP_NAME}",
         html_content=render_template(
-            "email/invitation.html",
+            "auth/invitation_email.html",
             invitation=invitation,
-            app_name=current_app.config["APP_NAME"],
+            app_name=APP_NAME,
         ),
     )
     flash("Invitation sent successfully! 🎉")
@@ -492,3 +493,82 @@ def create_guest_session_if_needed():
         user = User.create_guest_and_login()
 
     g.user = user
+
+
+@auth.route("/forgotten_password", methods=["GET", "POST"])
+def forgotten_password():
+    if request.method == "GET":
+        return render_template("auth/forgotten_password.html")
+
+    email = request.form.get("email")
+    if not email:
+        flash("Please enter your email")
+        return redirect(url_for("auth.forgotten_password"))
+
+    from db.models.auth.user import User
+
+    user = User.select(email=email)
+    if not user:
+        flash("No user with this email")
+        return redirect(url_for("auth.forgotten_password"))
+
+    # Create a session for this user in the DB
+    session_id = Session.insert(user_id=user[0].id)
+    session = Session.get_by_id(session_id)
+
+    user = user[0]
+    send_email(
+        to=user.email,
+        subject="Reset your password",
+        html_content=render_template(
+            "auth/reset_password_email.html", app_name=current_app.config["APP_NAME"], secret=session.secret
+        ),
+    )
+
+    flash("Email sent. Please check your inbox.")
+    return redirect(url_for("auth.login"))
+
+
+@auth.route("/reset_password", methods=["GET", "POST"])
+def reset_password():
+    secret = request.args.get("secret", request.form.get("secret"))
+    session = Session.select_one(secret=secret)
+    if not session:
+        flash("Invalid reset password link")
+        return redirect(url_for("auth.login"))
+
+    if session.expires < datetime.now().isoformat():
+        flash("Reset password link expired")
+        return redirect(url_for("auth.login"))
+
+    if request.method == "GET":
+        return render_template("auth/reset_password.html", session=session)
+
+    errors = []
+    password = request.form.get("password")
+    if not password:
+        errors.append("Please enter a password")
+
+    password2 = request.form.get("password2")
+    if not password2:
+        errors.append("Please confirm your password")
+
+    if password != password2:
+        errors.append("Passwords don't match")
+
+    if errors:
+        for error in errors:
+            flash(error)
+        return render_template("auth/reset_password.html", session=session), 400
+
+    from db.models.auth.user import User
+
+    # Update the user's password
+    User.update_by_id(session.user.id, password_hash=User.generate_password_hash(password))
+
+    user, password_ok = session.user.login(session.user.email, password)
+    if not password_ok:
+        flash("Invalid password")
+        return render_template("auth/reset_password.html", session=session)
+    flash("Password updated successfully! 🎉")
+    return redirect(url_for("main.index"))
