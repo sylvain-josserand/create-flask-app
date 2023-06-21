@@ -38,11 +38,11 @@ class User(AuthModel):
                 ),
             )
             user_id = cur.lastrowid
-            # Create a personal account for the user
-            account_id = Account.insert("Personal")
-            # Link the user to the account
-            UserAccount.insert(user_id=user_id, account_id=account_id, role="admin")
         con.close()
+        # Create a personal account for the user
+        account_id = Account.insert("Personal")
+        # Link the user to the account
+        UserAccount.insert(user_id=user_id, account_id=account_id, role="admin")
         return user_id
 
     @classmethod
