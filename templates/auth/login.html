@@ -6,15 +6,15 @@
         {% if invitation_secret %}
         <input type="hidden" name="invitation_secret" value="{{ invitation_secret }}">
         {% endif %}
-        <div class="form-group">
+        <div class="mb-3">
             <label class="form-label" for="email">E-mail</label>
-            <input class="form-input" type="text" id="email" name="email" value="{{ email }}" placeholder="name@example.com">
+            <input class="form-control" type="text" id="email" name="email" value="{{ email }}" placeholder="name@example.com">
         </div>
-        <div class="form-group">
+        <div class="mb-3">
             <label class="form-label" for="password">Password</label>
-            <input class="form-input" type="password" id="password" name="password" value="{{ password }}">
+            <input class="form-control" type="password" id="password" name="password" value="{{ password }}">
         </div>
-        <button class="btn btn-default">Log in</button>
+        <button class="btn btn-primary">Log in</button>
     </form>
     <p>No account yet? <a href="{{ url_for('auth.signup') }}">Sign up!</a></p>
     <p><a href="{{ url_for('auth.forgotten_password') }}">Forgotten password?</a></p>

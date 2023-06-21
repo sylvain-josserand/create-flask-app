@@ -56,6 +56,10 @@ def create_app(config_update=None):
     )
     if config_update:
         app.config.update(config_update)
+
+    # Enable static file serving from the "static" folder
+    app.static_folder = "static"
+
     with app.app_context():
         from blueprints.auth import auth
         from blueprints.email import email

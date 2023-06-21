@@ -2,23 +2,45 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
     {% block head %}
         <title>{% block title %}Your title here{% endblock %}</title>
     {% endblock %}
 </head>
 <body>
-<div>
 {% block menu %}
-    <a href="{{ url_for('main.index') }}">Home</a>
+<div class="d-flex">
+    <div class="p-2">
+        <a href="{{ url_for('main.index') }}">
+            <img
+                    src="{{ url_for('static', filename='img/logo.png') }}"
+                    width="60"
+                    height="60"
+                    alt="Logo">
+        </a>
+    </div>
+    <div class="me-auto p-2 align-self-center">
+        <a href="{{ url_for('main.index') }}">{{ config.APP_NAME }}</a>
+    </div>
     {% if g.user and g.user.email %}
-        - <a href="{{ url_for('auth.profile') }}">Profile</a> - <a href="{{ url_for('auth.logout') }}">Logout</a>
+    <div class="p-2 align-self-center">
+      <a href="{{ url_for('auth.account') }}">Account</a>
+    </div>
+    <div class="p-2 align-self-center">
+      <a href="{{ url_for('auth.logout') }}">Logout</a>
+    </div>
     {% else %}
-        - <a href="{{ url_for('auth.login') }}">Login</a>
-    or
-        <a href="{{ url_for('auth.signup') }}">Register to save your data</a>
+    <div class="p-2 align-self-center">
+      <a href="{{ url_for('auth.login') }}">Login</a>
+    </div>
+    <div class="p-2 align-self-center">
+      <a href="{{ url_for('auth.signup') }}">Register to save your data</a>
+    </div>
     {% endif %}
-{% endblock %}
 </div>
+{% endblock %}
 <div id="messages">
     {% with messages = get_flashed_messages() %}
         {% if messages %}

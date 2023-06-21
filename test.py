@@ -241,7 +241,7 @@ class TestCase(unittest.TestCase):
             follow_redirects=False,
         )
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.location, "/profile")
+        self.assertEqual(response.location, "/account")
         # Follow the redirect manually
         response = self.client.get(response.location)
         self.assertEqual(response.status_code, 200)
@@ -263,7 +263,7 @@ class TestCase(unittest.TestCase):
             )
         mock_send_email.assert_called_once()
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.location, "/profile")
+        self.assertEqual(response.location, "/account")
         # Follow the redirect manually
         response = self.client.get(response.location)
         self.assertEqual(response.status_code, 200)
@@ -338,7 +338,7 @@ class TestCase(unittest.TestCase):
             follow_redirects=False,
         )
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.location, "/profile")
+        self.assertEqual(response.location, "/account")
         # Follow the redirect manually
         response = self.client.get(response.location)
         self.assertEqual(response.status_code, 200)
@@ -351,7 +351,7 @@ class TestCase(unittest.TestCase):
             follow_redirects=False,
         )
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.location, "/profile")
+        self.assertEqual(response.location, "/account")
         # Follow the redirect manually
         response = self.client.get(response.location)
         self.assertIn(
@@ -366,7 +366,7 @@ class TestCase(unittest.TestCase):
             follow_redirects=False,
         )
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.location, "/profile")
+        self.assertEqual(response.location, "/account")
         # Follow the redirect manually
         response = self.client.get(response.location)
         self.assertIn("Account deleted successfully!", response.text)

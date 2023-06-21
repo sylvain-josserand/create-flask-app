@@ -145,19 +145,19 @@ def logout():
     return redirect(request.args.get("next", "/"))
 
 
-@auth.route("/profile", methods=["GET"])
-def profile():
+@auth.route("/account", methods=["GET"])
+def account():
     if g.user.email:
-        # Only display profile to non-guest users
-        return render_template("auth/profile.html")
-    return redirect(url_for("auth.login", next=url_for("auth.profile")))
+        # Only display account to non-guest users
+        return render_template("auth/account.html")
+    return redirect(url_for("auth.login", next=url_for("auth.account")))
 
 
 @auth.route("/user/update", methods=["POST"])
 def user_update():
     g.user.update(email=request.form.get("email"), name=request.form.get("name"))
     flash("User updated successfully! 🎉")
-    return redirect(url_for("auth.profile"))
+    return redirect(url_for("auth.account"))
 
 
 @auth.route("/user/change_password", methods=["POST"])
@@ -195,7 +195,7 @@ def user_update_password():
     else:
         g.user.update(password_hash=User.generate_password_hash(new_password))
         flash("Password updated successfully! 🎉")
-    return redirect(url_for("auth.profile"))
+    return redirect(url_for("auth.account"))
 
 
 @auth.route("/user/delete", methods=["POST"])
@@ -214,14 +214,14 @@ def account_update(account_id):
     user_account = UserAccount.select(user_id=g.user.id, account_id=account_id, role="admin")
     if not user_account:
         flash("You don't have permission to edit this account")
-        return redirect(url_for("auth.profile"))
+        return redirect(url_for("auth.account"))
 
     Account.update_by_id(
         account_id,
         name=request.form.get("name"),
     )
     flash("Account updated successfully! 🎉")
-    return redirect(url_for("auth.profile"))
+    return redirect(url_for("auth.account"))
 
 
 @auth.route("/account/<int:account_id>/delete", methods=["POST"])
@@ -232,12 +232,12 @@ def account_delete(account_id):
 
     if not user_account_set:
         flash("You are not a member of this account. You must be a member with admin rights to delete an account")
-        return redirect(url_for("auth.profile"))
+        return redirect(url_for("auth.account"))
 
     user_account = user_account_set[0]
     if user_account.role != "admin":
         flash("You don't have permission to edit this account. You must be admin to delete an account")
-        return redirect(url_for("auth.profile"))
+        return redirect(url_for("auth.account"))
 
     constraints = []
 
@@ -249,11 +249,11 @@ def account_delete(account_id):
     if constraints:
         for constraint in constraints:
             flash(constraint)
-        return redirect(url_for("auth.profile"))
+        return redirect(url_for("auth.account"))
 
     Account.delete_by_id(account_id)
     flash("Account deleted successfully! 🎉")
-    return redirect(url_for("auth.profile"))
+    return redirect(url_for("auth.account"))
 
 
 @auth.route("/user_account/<int:user_account_id>/update", methods=["POST"])
@@ -264,7 +264,7 @@ def user_account_update(user_account_id):
     user_account = UserAccount.get_by_id(user_account_id)
     if not user_account:
         flash("User account to be changed not found")
-        return redirect(url_for("auth.profile"))
+        return redirect(url_for("auth.account"))
 
     account_id = user_account.account_id
 
@@ -272,11 +272,11 @@ def user_account_update(user_account_id):
     admin_user_account = UserAccount.select(account_id=account_id, user_id=g.user.id, role="admin")
     if not admin_user_account:
         flash("You don't have permission to edit this account")
-        return redirect(url_for("auth.profile"))
+        return redirect(url_for("auth.account"))
 
     if request.form.get("role") not in UserAccount.role_choices:
         flash(f"Invalid role. Should be one of {', '.join(UserAccount.role_choices)}")
-        return redirect(url_for("auth.profile"))
+        return redirect(url_for("auth.account"))
 
     # Make sure there is at least one admin
     if user_account.role == "admin" and request.form.get("role") != "admin":
@@ -285,14 +285,14 @@ def user_account_update(user_account_id):
                 flash("You can't remove your admin rights because you are the only admin")
             else:
                 flash("You can't remove this user's admin rights because it is the last admin")
-            return redirect(url_for("auth.profile"))
+            return redirect(url_for("auth.account"))
 
     UserAccount.update_by_id(
         user_account.id,
         role=request.form.get("role"),
     )
     flash("User account updated successfully! 🎉")
-    return redirect(url_for("auth.profile"))
+    return redirect(url_for("auth.account"))
 
 
 @auth.route("/user_account/<int:user_account_id>/delete", methods=["POST"])
@@ -302,18 +302,18 @@ def user_account_delete(user_account_id):
     user_account = UserAccount.get_by_id(user_account_id)
     if not user_account:
         flash("User account to be deleted not found")
-        return redirect(url_for("auth.profile"))
+        return redirect(url_for("auth.account"))
 
     # Make sure there is at least one admin left in the group at all times, to prevent lockout
     admin_count = len(UserAccount.select(account_id=user_account.account_id, role="admin"))
 
     if user_account.role == "admin" and admin_count <= 1:
         flash("You can't remove this user from this account because there would be no admins left")
-        return redirect(url_for("auth.profile"))
+        return redirect(url_for("auth.account"))
 
     user_account.delete()
     flash("User account deleted successfully! 🎉")
-    return redirect(url_for("auth.profile"))
+    return redirect(url_for("auth.account"))
 
 
 @auth.route("/account/<int:account_id>/invite", methods=["POST"])
@@ -324,17 +324,17 @@ def account_invite(account_id):
 
     if not UserAccount.select(user_id=g.user.id, account_id=account_id, role="admin"):
         flash("You don't have permission to invite users to this account")
-        return redirect(url_for("auth.profile"))
+        return redirect(url_for("auth.account"))
 
     email = request.form.get("email")
     if not email:
         flash("You must enter an email address")
-        return redirect(url_for("auth.profile"))
+        return redirect(url_for("auth.account"))
 
     role = request.form.get("role")
     if role not in UserAccount.role_choices:
         flash(f"Invalid role. Should be one of {', '.join(UserAccount.role_choices)}")
-        return redirect(url_for("auth.profile"))
+        return redirect(url_for("auth.account"))
 
     # Insert a new invite into the invitation database table
     invitation_id = Invitation.insert(account_id=account_id, email=email, created_by=g.user.id, role=role)
@@ -353,7 +353,7 @@ def account_invite(account_id):
         ),
     )
     flash("Invitation sent successfully! 🎉")
-    return redirect(url_for("auth.profile"))
+    return redirect(url_for("auth.account"))
 
 
 @auth.route("/invitation/<secret>", methods=["GET"])
@@ -361,7 +361,7 @@ def invitation(secret):
     invitation = Invitation.get_by_secret(secret)
     if not invitation:
         flash("Invalid invitation")
-        return redirect(url_for("auth.profile"))
+        return redirect(url_for("auth.account"))
 
     return render_template(
         "auth/invitation.html",
@@ -377,7 +377,7 @@ def invitation_accept():
     invitation = Invitation.get_by_secret(invitation_secret)
     if not invitation:
         flash("Invalid invitation")
-        return redirect(url_for("auth.profile"))
+        return redirect(url_for("auth.account"))
 
     # Check if the user already has an account
     from db.models.auth.user import User
@@ -396,7 +396,7 @@ def invitation_accept():
     )
     if user_account:
         flash("There is already such a member in this account")
-        return redirect(url_for("auth.profile"))
+        return redirect(url_for("auth.account"))
 
     # From here on, the user has an account
     invited_user = invited_users[0]
@@ -409,7 +409,7 @@ def invitation_accept():
         invitation.update(status="accepted")
         flash("Invitation accepted. Welcome to the team! 🎉")
 
-        return redirect(url_for("auth.profile"))
+        return redirect(url_for("auth.account"))
 
     # The invited user is not the current user: log out the current user and log in the invited user
     g.user.logout()
@@ -425,13 +425,13 @@ def invitation_decline():
 
     if not invitation:
         flash("Invalid invitation")
-        return redirect(url_for("auth.profile"))
+        return redirect(url_for("auth.account"))
 
     # Set the invitation status to declined
     invitation.update(status="declined")
     flash("Invitation successfully declined 🎉")
 
-    return redirect(url_for("auth.profile"))
+    return redirect(url_for("auth.account"))
 
 
 @auth.route("/account_create", methods=["POST"])
@@ -442,19 +442,19 @@ def account_create():
     account = Account.insert(name=request.form.get("name"))
     UserAccount.insert(account_id=account.id, user_id=g.user.id, role="admin")
     flash("Account created successfully! 🎉")
-    return redirect(url_for("auth.profile"))
+    return redirect(url_for("auth.account"))
 
 
 @auth.route("/invitation_delete/<int:invitation_id>", methods=["POST"])
 def invitation_delete(invitation_id):
     if not invitation_id:
         flash("No invitation ID")
-        return redirect(url_for("auth.profile"))
+        return redirect(url_for("auth.account"))
 
     invitation = Invitation.get_by_id(invitation_id)
     if not invitation:
         flash("Non-existent invitation ID")
-        return redirect(url_for("auth.profile"))
+        return redirect(url_for("auth.account"))
 
     from db.models.auth.account import Account
 
@@ -465,11 +465,11 @@ def invitation_delete(invitation_id):
 
     if not UserAccount.select(user_id=g.user.id, account_id=account.id, role="admin"):
         flash("You don't have permission to delete this invitation")
-        return redirect(url_for("auth.profile"))
+        return redirect(url_for("auth.account"))
 
     Invitation.delete_by_id(invitation_id)
     flash("Invitation deleted successfully! 🎉")
-    return redirect(url_for("auth.profile"))
+    return redirect(url_for("auth.account"))
 
 
 # Run this function before every request

@@ -11,12 +11,12 @@
 <p>
     <form action="{{ url_for('auth.invitation_decline') }}" method="POST">
         <input type="hidden" name="invitation_secret" value="{{ invitation.secret }}">
-        <button class="btn btn-alert">Decline the invitation</button>
+        <button class="btn btn-danger">Decline the invitation</button>
     </form>
 <br/>
     <form action="{{ url_for('auth.invitation_accept') }}" method="POST">
         <input type="hidden" name="invitation_secret" value="{{ invitation.secret }}">
-        <button class="btn btn-alert">Accept the invitation</button>
+        <button class="btn btn-success">Accept the invitation</button>
     </form>
 </p>
 <p>
