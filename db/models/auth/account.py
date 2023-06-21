@@ -75,7 +75,7 @@ class Account(AuthModel):
             )
             account_id = cur.lastrowid
         con.close()
-        return cls.get_by_id(account_id)
+        return account_id
 
     def add_user(self, user, role):
         """Add a user to this account."""
