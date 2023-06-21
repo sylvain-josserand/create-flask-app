@@ -3,9 +3,8 @@ import sqlite3
 from operator import itemgetter
 from time import perf_counter
 
+import app
 from db.connection import connect_to_db
-from db.models.auth.account import Account
-from db.models.auth.auth_model import AuthModel
 
 
 def build_migrations_list(subpath):
@@ -49,6 +48,8 @@ def migrate(db_file_name, migrations):
 
 
 def migrate_account(account_id, migrations):
+    from db.models.auth.account import Account
+
     account = Account.get_by_id(account_id)
     print(f"Migrating account {account.id} in {account.account_db_file_name} file...")
 
@@ -56,6 +57,8 @@ def migrate_account(account_id, migrations):
 
 
 def run():
+    from db.models.auth.auth_model import AuthModel
+
     # Auth database contains the list of all customer accounts' db files in the "account" table
     print("Running missing migrations on the auth database.")
 
@@ -82,4 +85,5 @@ def run():
 
 
 if __name__ == "__main__":
-    run()
+    with app.create_app().app_context():
+        run()
