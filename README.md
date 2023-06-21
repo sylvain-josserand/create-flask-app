@@ -3,7 +3,7 @@ Simple flask app to start a B2B SaaS product
 
 ## Installation
 Get the project files with the following command:
-```wget https://github.com/sylvain-josserand/create-flask-app/archive/refs/heads/main.zip && unzip -j main.zip create-flask-app-main/*```
+```wget https://github.com/sylvain-josserand/create-flask-app/archive/refs/heads/main.zip && unzip main.zip && mv -n create-flask-app-main/{.,}* ./ && rmdir create-flask-app-main && rm main.zip```
 
 This will download the project files and unzip them in the current directory.
 
