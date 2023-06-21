@@ -19,6 +19,9 @@ class User(AuthModel):
 
     @classmethod
     def insert(cls, name, email, password):
+        from db.models.auth.account import Account
+        from db.models.auth.user_account import UserAccount
+
         con = cls.connect_to_db()
         if password is None:
             password_hash = None
@@ -36,15 +39,9 @@ class User(AuthModel):
             )
             user_id = cur.lastrowid
             # Create a personal account for the user
-            cur = con.execute(
-                "INSERT INTO account (account_db_file_name, name) VALUES (?, ?)",
-                (secrets.token_hex(16) + ".db", "Personal"),
-            )
-            account_id = cur.lastrowid
+            account_id = Account.insert("Personal")
             # Link the user to the account
-            con.execute(
-                "INSERT INTO user_account (user_id, account_id, role) VALUES (?, ?, ?)", (user_id, account_id, "admin")
-            )
+            UserAccount.insert(user_id=user_id, account_id=account_id, role="admin")
         con.close()
         return user_id
 
