@@ -439,8 +439,8 @@ def account_create():
     from db.models.auth.account import Account
     from db.models.auth.user_account import UserAccount
 
-    account = Account.insert(name=request.form.get("name"))
-    UserAccount.insert(account_id=account.id, user_id=g.user.id, role="admin")
+    account_id = Account.insert(name=request.form.get("name"))
+    UserAccount.insert(account_id=account_id, user_id=g.user.id, role="admin")
     flash("Account created successfully! 🎉")
     return redirect(url_for("auth.account"))
 
