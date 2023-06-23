@@ -36,9 +36,19 @@ def migrate(db_file_name, migrations):
         applied_migrations.add(migration_name)
 
     for migration_name, migration_code in migrations:
+        if not migration_name.endswith(".sql"):
+            continue  # Not a SQL file: skip this one
+
         if migration_name in applied_migrations:
             continue  # Already applied: skip this one
-        migrate_cur.executescript(migration_code)
+
+        try:
+            migrate_cur.executescript(migration_code)
+        except:
+            print("Error while applying migration:")
+            print(migration_code)
+            raise
+
         start_time = perf_counter()
         print(f"Applying migration {migration_name} to {db_file_name} database...")
         migrate_cur.execute("INSERT INTO migration VALUES(?)", (migration_name,))
