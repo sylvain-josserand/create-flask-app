@@ -12,6 +12,48 @@ from db.models.auth.invitation import Invitation
 auth = Blueprint("auth", __name__, template_folder="templates")
 
 
+# Run this function before every request
+@auth.before_app_request
+def create_guest_session_if_needed():
+    from db.models.auth.account import Account
+    from db.models.auth.user import User
+
+    SESSION_SECRET_KEY = current_app.config["SESSION_SECRET_KEY"]
+
+    user = None
+
+    if SESSION_SECRET_KEY in session:
+        # Returns None if session_secret is invalid or expired
+        user = User.get_by_session_secret(session[SESSION_SECRET_KEY])
+
+    if user is None:
+        if SESSION_SECRET_KEY in session:
+            # Session is expired
+            flash("Your session has expired. When using the app as guest, remember to sign in to save your work.")
+
+        user = User.create_guest_and_login()
+
+    g.user = user
+
+    account_id = request.args.get("account_id")
+    if account_id and account_id.isdigit():
+        account_id = int(account_id)
+    else:
+        account_id = None
+
+    g.account = user.current_account
+
+    # Let's change the current account to the one they're trying to access
+    if account_id and account_id != user.current_account.id:
+        # Let's make sure the user has access to the account they're trying to access
+        if account_id in [account.id for account in user.account_set]:
+            user.update(current_account_id=account_id)
+            g.account = Account.get_by_id(account_id)
+        else:
+            flash("You don't have access to that account")
+            return redirect(url_for("main.index"))
+
+
 @auth.route("/signup", methods=["POST", "GET"])
 def signup():
     invitation_secret = request.args.get("invitation_secret", request.form.get("invitation_secret"))
@@ -117,7 +159,7 @@ def login():
             if not user:
                 errors.append("No such user")
             elif not is_password_ok:
-                errors.append("Incorrect password")
+                errors.append("Incorrect password or session expired")
 
         for error_message in errors:
             flash(error_message)
@@ -136,8 +178,7 @@ def login():
 
 @auth.route("/logout", methods=["GET"])
 def logout():
-    SESSION_SECRET_KEY = current_app.config["SESSION_SECRET_KEY"]
-    session.pop(SESSION_SECRET_KEY, None)
+    session.clear()
     if g.user:
         g.user.logout()
         g.user = None
@@ -257,6 +298,11 @@ def account_delete(account_id):
         for constraint in constraints:
             flash(constraint)
         return redirect(url_for("auth.account"))
+
+    # Before deleting the account, assign all users that have it as their current account to a different account
+    for user in account.current_user_set:
+        user_account = UserAccount.select_excluding_account(exclude_account_id=account_id, user_id=user.id)[0]
+        user.update(current_account_id=user_account.account_id)
 
     account.delete()
 
@@ -390,8 +436,8 @@ def invitation_accept():
     # Check if the user already has an account
     from db.models.auth.user import User
 
-    invited_users = User.select(email=invitation.email)
-    if not invited_users:
+    invited_user = User.select_one(email=invitation.email)
+    if invited_user is None:
         flash("You must create an account first")
         return redirect(url_for("auth.signup", invitation_secret=invitation_secret))
 
@@ -399,7 +445,7 @@ def invitation_accept():
     from db.models.auth.user_account import UserAccount
 
     user_account = UserAccount.select(
-        user_id=invited_users[0].id,
+        user_id=invited_user.id,
         account_id=invitation.account_id,
     )
     if user_account:
@@ -407,16 +453,8 @@ def invitation_accept():
         return redirect(url_for("auth.account"))
 
     # From here on, the user has an account
-    invited_user = invited_users[0]
     if g.user.id == invited_user.id:
-        # The invited user is the current user: accept the invitation by adding the user to the account
-        from db.models.auth.user_account import UserAccount
-
-        UserAccount.insert(user_id=invited_user.id, account_id=invitation.account_id, role=invitation.role)
-
-        invitation.update(status="accepted")
-        flash("Invitation accepted. Welcome to the team! 🎉")
-
+        invitation.accept(user=invited_user)
         return redirect(url_for("auth.account"))
 
     # The invited user is not the current user: log out the current user and log in the invited user
@@ -478,29 +516,6 @@ def invitation_delete(invitation_id):
     Invitation.delete_by_id(invitation_id)
     flash("Invitation deleted successfully! 🎉")
     return redirect(url_for("auth.account"))
-
-
-# Run this function before every request
-@auth.before_app_request
-def create_guest_session_if_needed():
-    from db.models.auth.user import User
-
-    SESSION_SECRET_KEY = current_app.config["SESSION_SECRET_KEY"]
-
-    user = None
-
-    if SESSION_SECRET_KEY in session:
-        # Returns None if session_secret is invalid or expired
-        user = User.get_by_session_secret(session[SESSION_SECRET_KEY])
-
-    if user is None:
-        if SESSION_SECRET_KEY in session:
-            # Session is expired
-            flash("Your session has expired. When using the app as guest, remember to sign in to save your work.")
-
-        user = User.create_guest_and_login()
-
-    g.user = user
 
 
 @auth.route("/forgotten_password", methods=["GET", "POST"])

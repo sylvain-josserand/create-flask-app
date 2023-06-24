@@ -1,11 +1,14 @@
 CREATE TABLE IF NOT EXISTS user
 (
-    "id"            INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-    "name"          TEXT                              NOT NULL,                           -- name is 'Guest' for guest accounts (not signed up yet)
-    "email"         TEXT                              NULL UNIQUE,                        -- email is null for guest accounts
-    "password_hash" TEXT                              NULL,                               -- password is null for guest accounts
-    "created"       TEXT                              NOT NULL default current_timestamp, -- It's a datetime
-    "last_login"    TEXT                              NOT NULL default current_timestamp  -- It's a datetime
+    "id"                    INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    "name"                  TEXT                              NOT NULL,                           -- name is 'Guest' for guest accounts (not signed up yet)
+    "email"                 TEXT                              NULL UNIQUE,                        -- email is null for guest accounts
+    "password_hash"         TEXT                              NULL,                               -- password is null for guest accounts
+    "created"               TEXT                              NOT NULL default current_timestamp, -- It's a datetime
+    "last_login"            TEXT                              NOT NULL default current_timestamp, -- It's a datetime
+    "current_account_id"    INTEGER                           NULL,                               -- Can be NULL if account is deleted
+    FOREIGN KEY (current_account_id) REFERENCES account (id) ON UPDATE CASCADE ON DELETE SET NULL
+
 );
 
 CREATE TABLE IF NOT EXISTS account

@@ -11,6 +11,9 @@ app = flask.current_app
 class Invitation(AuthModel):
     table_name = "invitation"
     fields = ("id", "secret", "email", "created_by", "account_id", "role", "status", "created")
+    STATUS_PENDING = "pending"
+    STATUS_ACCEPTED = "accepted"
+    STATUS_DECLINED = "declined"
 
     @property
     def inviter(self):
@@ -65,8 +68,8 @@ class Invitation(AuthModel):
             errors.append("The email from the invitation doesn't match the one you just signed up with.")
 
         # Check if the user is already a member of the account
-        if UserAccount.select(user_id=user.id, account_id=account.id):
-            errors.append("You're already a member of this account")
+        if UserAccount.count(user_id=user.id, account_id=account.id):
+            errors.append("This user is already a member of this account")
 
         # Check if the invitation was already accepted or declined
         if self.status == "accepted":
@@ -80,7 +83,7 @@ class Invitation(AuthModel):
             return False
         else:
             # Add the user to the account
-            UserAccount.insert(user_id=g.user.id, account_id=account.id, role=self.role)
+            UserAccount.insert(user_id=user.id, account_id=account.id, role=self.role)
 
         self.update(status="accepted")
         flash("Invitation accepted. Welcome to the team! 🎉")

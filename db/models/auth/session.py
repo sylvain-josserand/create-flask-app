@@ -29,6 +29,22 @@ class Session(AuthModel):
         con.close()
         return cur.lastrowid
 
+    @classmethod
+    def select_one_unexpired(cls, secret):
+        con = cls.connect_to_db()
+        with con:
+            cur = con.execute(
+                f"""SELECT {cls.comma_separated_fields()}
+                    FROM {cls.table_name}
+                    WHERE secret = ? AND expires > ?""",
+                (secret, datetime.now()),
+            )
+        row = cur.fetchone()
+        con.close()
+        if row is None:
+            return None
+        return cls(**row)
+
     @property
     def user(self):
         from db.models.auth.user import User

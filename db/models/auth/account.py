@@ -46,6 +46,21 @@ class Account(AuthModel):
         return [User(**row) for row in cur.fetchall()]
 
     @property
+    def current_user_set(self):
+        """Return a set of users that belong to this account."""
+        from db.models.auth.user import User
+
+        con = self.connect_to_db()
+        with con:
+            cur = con.execute(
+                f"""SELECT {User.comma_separated_fields()}
+                    FROM user
+                    WHERE user.current_account_id = ?""",
+                (self.id,),
+            )
+        return [User(**row) for row in cur.fetchall()]
+
+    @property
     def invitation_set(self):
         """Return a set of invitations that belong to this account."""
         from db.models.auth.invitation import Invitation

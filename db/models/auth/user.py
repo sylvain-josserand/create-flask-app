@@ -9,7 +9,13 @@ from db.models.auth.auth_model import AuthModel
 
 class User(AuthModel):
     table_name = "user"
-    fields = ("id", "name", "email", "password_hash", "created", "last_login")
+    fields = ("id", "name", "email", "password_hash", "created", "last_login", "current_account_id")
+
+    @property
+    def current_account(self):
+        from db.models.auth.account import Account
+
+        return Account.get_by_id(self.current_account_id)
 
     @classmethod
     def generate_password_hash(cls, password):
@@ -65,25 +71,36 @@ class User(AuthModel):
     @classmethod
     def login(cls, email, password):
         """Returns (user, is_password_ok)"""
+        from db.models.auth.session import Session
+
         SESSION_SECRET_KEY = current_app.config["SESSION_SECRET_KEY"]
 
-        con = User.connect_to_db()
-
-        with con:
-            cur = con.execute(f"SELECT {cls.comma_separated_fields()} FROM user WHERE email = ?", (email,))
-            result = cur.fetchone()
-            if result:
-                user = cls(**result)
-            else:
-                return None, False
+        user = User.select_one(email=email)
+        if user is None:
+            return None, False
 
         if check_password_hash(user.password_hash, password):
-            # Update the session to point to the logged-in user
-            with con:
-                con.execute("UPDATE session SET user_id = ? WHERE secret = ?", (user.id, session[SESSION_SECRET_KEY]))
-                con.execute("UPDATE user SET last_login = ? WHERE id = ?", (datetime.now(), user.id))
-            con.commit()
-            g.user = user
+            # Update the db session to point to the logged-in user, but only if it's a guest session!
+            db_session = Session.select_one_unexpired(secret=session[SESSION_SECRET_KEY])
+            if db_session:
+                if db_session.user.email is None:
+                    # Update the guest session to point to the logged-in user
+                    db_session.update(user_id=user.id)
+                else:  # Logged in with a different user
+                    g.user.logout()
+                    # Create a new session
+                    db_session_id = Session.insert(user_id=user.id)
+                    db_session = Session.get_by_id(db_session_id)
+                    session[SESSION_SECRET_KEY] = db_session.secret
+                    g.user = user
+                    g.account = user.current_account
+            else:
+                # Low chance of happening because we create guest session by default
+                Session.insert(user_id=user.id)
+
+            # Update the last login time
+            user.update(last_login=datetime.now())
+
             return user, True
         return user, False
 
