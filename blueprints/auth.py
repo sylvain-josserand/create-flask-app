@@ -247,7 +247,11 @@ def account_delete(account_id):
     for user in account.user_set:
         user_account_count = len(UserAccount.select(user_id=user.id))
         if user_account_count <= 1:
-            constraints.append(f"You can't delete this account because {user.email} would have no accounts left")
+            if user.id == g.user.id:
+                who = "you"
+            else:
+                who = user.name
+            constraints.append(f"You can't delete this account because {who} would have no accounts left")
 
     if constraints:
         for constraint in constraints:
