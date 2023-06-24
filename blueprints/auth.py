@@ -241,17 +241,21 @@ def account_delete(account_id):
 
     constraints = []
 
+    account = Account.get_by_id(account_id)
+
     # Make sure each user has at least one account left
-    user_account_count = len(UserAccount.select(user_id=g.user.id))
-    if user_account_count <= 1:
-        constraints.append("You can't delete this account because you would have no accounts left")
+    for user in account.user_set:
+        user_account_count = len(UserAccount.select(user_id=user.id))
+        if user_account_count <= 1:
+            constraints.append(f"You can't delete this account because {user.email} would have no accounts left")
 
     if constraints:
         for constraint in constraints:
             flash(constraint)
         return redirect(url_for("auth.account"))
 
-    Account.delete_by_id(account_id)
+    account.delete()
+
     flash("Account deleted successfully! 🎉")
     return redirect(url_for("auth.account"))
 
