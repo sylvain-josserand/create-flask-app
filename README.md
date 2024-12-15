@@ -11,19 +11,23 @@ Use them as a starting point for your own project.
 
 ## Usage
 
-### Database migration
+### 1. Create the database
 
 Use the `migrate.py` script to apply all migrations to the main database and all the accounts databases.
 
 ```python migrate.py```
 
-### Run the app
+### 2. Customize the config.ini
+
+Edit the config.ini file and fill the values with yours
+
+### 3. Launch the app server
 
 Run the app in development mode with the following command:
 
 ```FLASK_ENV=development FLASK_DEBUG=true flask run```
 
-### Test the app
+### 4. Test the app
 
 Run the tests with the following command:
 
