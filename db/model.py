@@ -1,3 +1,5 @@
+import sqlite3
+
 from db.connection import connect_to_db
 
 
@@ -22,7 +24,10 @@ class Model:
 
     @classmethod
     def connect_to_db(cls):
-        return connect_to_db(cls.db_file_name)
+        try:
+            return connect_to_db(cls.db_file_name)
+        except sqlite3.OperationalError:
+            raise Exception("Database not found. Please run migrate.py to create the database first.")
 
     @classmethod
     def insert(cls, **fields):
