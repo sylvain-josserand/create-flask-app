@@ -1,8 +1,8 @@
 # create-flask-app
-Simple flask app to start a B2B SaaS product
+Simple flask app to start a B2B SaaS product with batteries included and exposed SQL.
 
 ## Installation
-Get the project files with the following command:
+Get the project files to the current directory with the following command:
 ```wget https://github.com/sylvain-josserand/create-flask-app/archive/refs/heads/main.zip && unzip main.zip && mv -n create-flask-app-main/{.,}* ./ && rmdir create-flask-app-main && rm main.zip```
 
 This will download the project files and unzip them in the current directory.
