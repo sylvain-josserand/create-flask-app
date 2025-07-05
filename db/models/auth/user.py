@@ -34,20 +34,23 @@ class User(AuthModel):
         else:
             password_hash = cls.generate_password_hash(password)
 
+        # Create a default personal account for the user
+        account_id = Account.insert("Personal")
+
         with con:
             cur = con.execute(
-                f'INSERT INTO {cls.table_name} ("name", "email", "password_hash") VALUES (?, ?, ?)',
+                f'INSERT INTO {cls.table_name} ("name", "email", "password_hash", "current_account_id") VALUES (?, ?, ?, ?)',
                 (
                     name,
                     email,
                     password_hash,
+                    account_id,
                 ),
             )
             user_id = cur.lastrowid
         con.close()
-        # Create a personal account for the user
-        account_id = Account.insert("Personal")
-        # Link the user to the account
+
+        # Link the user to the default personal account
         UserAccount.insert(user_id=user_id, account_id=account_id, role="admin")
         return user_id
 
