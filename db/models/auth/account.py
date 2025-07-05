@@ -76,6 +76,12 @@ class Account(AuthModel):
         return [Invitation(**row) for row in cur.fetchall()]
 
     @classmethod
+    def create_db(cls, db_file_name):
+        """Create the database for this account."""
+        migrations = build_migrations_list("accounts")
+        migrate(db_file_name, migrations)
+
+    @classmethod
     def insert(cls, name):
         secret = secrets.token_hex(16)
         account_db_file_name = Path(current_app.config["DATA_DIR"].resolve(), "accounts", *secret[:6], secret + ".db")
@@ -90,6 +96,10 @@ class Account(AuthModel):
             )
             account_id = cur.lastrowid
         con.close()
+
+        # Create the account database
+        Account.create_db(account_db_file_name)
+
         return account_id
 
     def add_user(self, user, role):
