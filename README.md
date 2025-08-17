@@ -44,7 +44,7 @@ Run the tests with the following command:
  - Invite users to company account
  - 80% test coverage
  - Reset forgotten password by email
- - Use Bootstrap 5 for the UI
+ - Use custom CSS for the UI
 
 ## To-do list
  - Email verification
