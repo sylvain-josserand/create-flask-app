@@ -5,34 +5,34 @@
 <h1>Account</h1>
 <ul class="nav nav-tabs" id="accountTab" role="tablist">
   <li class="nav-item" role="presentation">
-    <button class="nav-link active" id="account-tab" data-bs-toggle="tab" data-bs-target="#account-tab-pane" type="button" role="tab" aria-controls="account-tab-pane" aria-selected="true">Profile</button>
+    <a class="nav-link {% if active_tab == 'account-tab-pane' %}active{% endif %}" id="account-tab" href="{{ url_for('auth.account', tab='account-tab-pane') }}" role="tab" aria-controls="account-tab-pane" aria-selected="{% if active_tab == 'account-tab-pane' %}true{% else %}false{% endif %}">Profile</a>
   </li>
 {% for account in g.user.account_set %}
   <li class="nav-item" role="presentation">
-    <button class="nav-link" id="account-{{ account.id }}-tab" data-bs-toggle="tab" data-bs-target="#account-{{ account.id }}-tab-pane" type="button" role="tab" aria-controls="accpount-{{ account.id }}-tab-pane" aria-selected="false">{{ account.name }}</button>
+    <a class="nav-link {% if active_tab == 'account-' + account.id|string + '-tab-pane' %}active{% endif %}" id="account-{{ account.id }}-tab" href="{{ url_for('auth.account', tab='account-' + account.id|string + '-tab-pane') }}" role="tab" aria-controls="account-{{ account.id }}-tab-pane" aria-selected="{% if active_tab == 'account-' + account.id|string + '-tab-pane' %}true{% else %}false{% endif %}">{{ account.name }}</a>
   </li>
 {% endfor %}
   <li class="nav-item" role="presentation">
-    <button class="nav-link" id="new-account-tab" data-bs-toggle="tab" data-bs-target="#new-account-tab-pane" type="button" role="tab" aria-controls="new-account-tab-pane" aria-selected="false">+ New Account</button>
+    <a class="nav-link {% if active_tab == 'new-account-tab-pane' %}active{% endif %}" id="new-account-tab" href="{{ url_for('auth.account', tab='new-account-tab-pane') }}" role="tab" aria-controls="new-account-tab-pane" aria-selected="{% if active_tab == 'new-account-tab-pane' %}true{% else %}false{% endif %}">+ New Account</a>
   </li>
 </ul>
 
 <div class="tab-content" id="accountTabContent">
-    <div class="tab-pane fade show active" id="account-tab-pane" role="tabpanel" aria-labelledby="account-tab" tabindex="0">
+    <div class="tab-pane fade {% if active_tab == 'account-tab-pane' %}show active{% endif %}" id="account-tab-pane" role="tabpanel" aria-labelledby="account-tab" tabindex="0">
         <div class="my-5">
             <h2>Personal information</h2>
             <form action="{{ url_for('auth.user_update') }}" method="POST">
                 <div class="my-3 row">
                     <label class="form-label col-sm-2 col-form-label" for="user_email">E-mail</label>
                     <div class="col-sm-10">
-                        <input class="form-input" id="user_email" name="email" placeholder="name@example.com" type="text"
+                        <input class="form-control" id="user_email" name="email" placeholder="name@example.com" type="text"
                                value="{{ g.user.email }}">
                     </div>
                 </div>
                 <div class="my-3 row">
                     <label class="form-label col-sm-2 col-form-label" for="user_name">Name</label>
                     <div class="col-sm-10">
-                        <input class="form-input" id="user_name" name="name" placeholder="Jane Smith" type="text"
+                        <input class="form-control" id="user_name" name="name" placeholder="Jane Smith" type="text"
                            value="{{ g.user.name }}">
                     </div>
                 </div>
@@ -45,19 +45,19 @@
                 <div class="my-3 row">
                     <label class="form-label col-sm-2 col-form-label" for="old_password">Old Password</label>
                     <div class="col-sm-10">
-                        <input class="form-input" id="old_password" name="old_password" type="password" value="{{ old_password }}">
+                        <input class="form-control" id="old_password" name="old_password" type="password" value="{{ old_password }}">
                     </div>
                 </div>
                 <div class="my-3 row">
                     <label class="form-label col-sm-2 col-form-label" for="new_password">New password</label>
                     <div class="col-sm-10">
-                        <input class="form-input" id="new_password" name="new_password" type="password" value="{{ new_password }}">
+                        <input class="form-control" id="new_password" name="new_password" type="password" value="{{ new_password }}">
                     </div>
                 </div>
                 <div class="my-3 row">
                     <label class="form-label col-sm-2 col-form-label" for="new_password2">Repeat new password</label>
                     <div class="col-sm-10">
-                        <input class="form-input" id="new_password2" name="new_password2" type="password" value="{{ new_password2 }}">
+                        <input class="form-control" id="new_password2" name="new_password2" type="password" value="{{ new_password2 }}">
                     </div>
                 </div>
                 <button class="btn btn-primary">Change password</button>
@@ -71,7 +71,7 @@
         </div>
     </div>
     {% for account in g.user.account_set %}
-    <div class="tab-pane fade" id="account-{{ account.id }}-tab-pane" role="tabpanel" aria-labelledby="account-{{ account.id }}-tab" tabindex="0">
+    <div class="tab-pane fade {% if active_tab == 'account-' + account.id|string + '-tab-pane' %}show active{% endif %}" id="account-{{ account.id }}-tab-pane" role="tabpanel" aria-labelledby="account-{{ account.id }}-tab" tabindex="0">
         <div class="my-5">
             <h2>Account information</h2>
             <p>You have <b>{{ account.role(g.user.id) }}</b> access to this account.</p>
@@ -80,7 +80,7 @@
                 <div class="my-3 row">
                     <label class="form-label col-sm-2 col-form-label" for="account_name_{{ account.id }}">Company name</label>
                     <div class="col-sm-10">
-                        <input class="form-input" id="account_name_{{ account.id }}" name="name" type="text" value="{{ account.name }}">
+                        <input class="form-control" id="account_name_{{ account.id }}" name="name" type="text" value="{{ account.name }}">
                     </div>
                 </div>
                 <button class="btn btn-primary">Save</button>
@@ -108,7 +108,7 @@
                                         <div class="col-5">
                                             {% for role in user_account.role_choices %}
                                             <label class="form-label" for="role_{{ user_account.id }}">{{ role.title() }}</label>
-                                            <input class="form-input" id="role_{{ user_account.id }}" name="role" type="radio" value="{{ role }}" {% if user_account.role == role %}checked{% endif %}>
+                                            <input class="form-check-input" id="role_{{ user_account.id }}" name="role" type="radio" value="{{ role }}" {% if user_account.role == role %}checked{% endif %}>
                                             <br/>
                                             {% endfor %}
                                         </div>
@@ -136,13 +136,13 @@
                 <div class="my-3 row">
                     <label class="form-label col-sm-2 col-form-label" for="invite_user_email_{{ account.id }}">User email</label>
                     <div class="col-sm-10">
-                        <input class="form-input" id="invite_user_email_{{ account.id }}" name="email" type="text" placeholder="name@example.com">
+                        <input class="form-control" id="invite_user_email_{{ account.id }}" name="email" type="text" placeholder="name@example.com">
                     </div>
                     <div class="my-3 row">
                         {% for role in account.role_choices %}
                         <label class="form-label col-sm-2 col-form-label" for="invite_{{ role }}_account_{{ account.id }}">{{ role.title() }}</label>
                         <div class="col-sm-10">
-                            <input class="form-input" id="invite_{{ role }}_account_{{ account.id }}" name="role" type="radio" value="{{ role }}" {% if role == "user" %}checked{% endif %}>
+                            <input class="form-check-input" id="invite_{{ role }}_account_{{ account.id }}" name="role" type="radio" value="{{ role }}" {% if role == "user" %}checked{% endif %}>
                         </div>
                         {% endfor %}
                     </div>
@@ -196,14 +196,14 @@
         </div>
     </div>
     {% endfor %}
-    <div class="tab-pane fade" id="new-account-tab-pane" role="tabpanel" aria-labelledby="new-account-tab" tabindex="0">
+    <div class="tab-pane fade {% if active_tab == 'new-account-tab-pane' %}show active{% endif %}" id="new-account-tab-pane" role="tabpanel" aria-labelledby="new-account-tab" tabindex="0">
         <div class="my-5">
             <h2>Create a new company account</h2>
             <form action="{{ url_for('auth.account_create') }}" method="POST">
                 <div class="my-3 row">
                     <label class="form-label col-sm-2 col-form-label" for="create_account_name">Company name</label>
                     <div class="col-sm-10">
-                        <input class="form-input" id="create_account_name" name="name" type="text" placeholder="World Company">
+                        <input class="form-control" id="create_account_name" name="name" type="text" placeholder="World Company">
                     </div>
                 </div>
                 <button class="btn btn-primary">Create</button>

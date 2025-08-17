@@ -190,7 +190,8 @@ def logout():
 def account():
     if g.user.email:
         # Only display account to non-guest users
-        return render_template("auth/account.html")
+        active_tab = request.args.get('tab', 'account-tab-pane')
+        return render_template("auth/account.html", active_tab=active_tab)
     return redirect(url_for("auth.login", next=url_for("auth.account")))
 
 

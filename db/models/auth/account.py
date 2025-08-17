@@ -4,6 +4,7 @@ from pathlib import Path
 from flask import current_app
 
 from db.models.auth.auth_model import AuthModel
+from migrate import build_migrations_list, migrate
 
 
 class Account(AuthModel):
