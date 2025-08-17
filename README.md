@@ -11,23 +11,30 @@ Use them as a starting point for your own project.
 
 ## Usage
 
-### 1. Create the database
+### 1. Install your python environment
+
+Make sure Python 3.13 (`python -V`) is installed.
+Create a virtual environment in the `.venv` directory at the root of the project: `python -m venv ./.venv`
+Activate the environment so that pip will install the packages in the env instead of system-wide: `. ./.venv/bin/activate`
+Install the project's required packages: `pip install -r ./requirements.txt`
+
+### 2. Create the database
 
 Use the `migrate.py` script to apply all migrations to the main database and all the accounts databases.
 
 ```python migrate.py```
 
-### 2. Customize the config.ini
+### 3. Customize the config.ini
 
 Edit the config.ini file and fill the values with yours
 
-### 3. Launch the app server
+### 4. Launch the app server
 
 Run the app in development mode with the following command:
 
 ```FLASK_ENV=development FLASK_DEBUG=true flask run```
 
-### 4. Test the app
+### 5. Test the app
 
 Run the tests with the following command:
 
