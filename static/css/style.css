@@ -1049,6 +1049,72 @@ input[type="checkbox"]:focus {
     height: auto !important;
 }
 
+/* Responsive table styles */
+@media screen and (max-width: 768px) {
+    /* Hide the table header on mobile */
+    .table.responsive-table thead {
+        display: none;
+    }
+
+    /* Make table elements block-level for vertical layout */
+    .table.responsive-table,
+    .table.responsive-table tbody,
+    .table.responsive-table tr,
+    .table.responsive-table td {
+        display: block;
+        width: 100%;
+    }
+
+    /* Style each row as a card */
+    .table.responsive-table tr {
+        margin-bottom: 1.5rem;
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-md);
+        background-color: var(--bg-primary);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+    }
+
+    /* Style table cells for vertical layout - 2 column layout */
+    .table.responsive-table td {
+        display: flex;
+        text-align: left;
+        padding: 0.75rem 1rem;
+        position: relative;
+        border: none;
+        border-bottom: 1px solid var(--border-light);
+    }
+
+    /* Remove border from last cell */
+    .table.responsive-table tr td:last-child {
+        border-bottom: none;
+    }
+
+    /* Use data-label as the left column header */
+    .table.responsive-table td::before {
+        content: attr(data-label);
+        flex: 0 0 40%;
+        font-weight: 600;
+        color: var(--text-primary);
+        padding-right: 1rem;
+    }
+
+    /* Alternating row backgrounds in mobile view */
+    .table.responsive-table td:nth-child(even) {
+        background-color: var(--bg-secondary);
+    }
+
+    /* Special handling for cells with forms - full width */
+    .table.responsive-table td:has(form) {
+        display: block;
+    }
+
+    .table.responsive-table td:has(form)::before {
+        display: block;
+        margin-bottom: 0.5rem;
+    }
+}
+
 /* Mobile responsive */
 @media (max-width: 768px) {
     /* Responsive form inputs */

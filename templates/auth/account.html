@@ -88,7 +88,7 @@
         </div>
         <div class="my-5">
             <h2>Account roles</h2>
-            <table class="table">
+            <table class="table responsive-table">
                 <thead>
                 <tr>
                     <th>Username</th>
@@ -100,29 +100,24 @@
                 <tbody>
                 {% for user_account in account.user_account_set %}
                     <tr>
-                            <td class="align-middle">{{ user_account.user.name}}</td>
-                            <td class="align-middle">{{ user_account.user.email }}</td>
-                            <td class="align-middle">
-                                <form action="{{ url_for('auth.user_account_update', user_account_id=user_account.id) }}" method="POST">
-                                    <div class="row">
-                                        <div class="col-5">
-                                            {% for role in user_account.role_choices %}
-                                            <label class="form-label" for="role_{{ user_account.id }}">{{ role.title() }}</label>
-                                            <input class="form-check-input" id="role_{{ user_account.id }}" name="role" type="radio" value="{{ role }}" {% if user_account.role == role %}checked{% endif %}>
-                                            <br/>
-                                            {% endfor %}
-                                        </div>
-                                        <div class="col-3 d-flex align-items-center">
-                                            <button class="btn btn-primary">Save</button>
-                                        </div>
+                            <td class="align-middle" data-label="Username">{{ user_account.user.name}}</td>
+                            <td class="align-middle" data-label="E-mail">{{ user_account.user.email }}</td>
+                            <td class="align-middle" data-label="Role">
+                                <form action="{{ url_for('auth.user_account_update', user_account_id=user_account.id) }}" method="POST" class="d-flex align-items-center gap-2">
+                                    <div>
+                                        {% for role in user_account.role_choices %}
+                                        <label class="form-label me-2 mb-0" for="role_{{ user_account.id }}_{{ role }}">
+                                            <input id="role_{{ user_account.id }}_{{ role }}" name="role" type="radio" value="{{ role }}" {% if user_account.role == role %}checked{% endif %}>
+                                            {{ role.title() }}
+                                        </label>
+                                        {% endfor %}
                                     </div>
+                                    <button class="btn btn-sm btn-primary">Save</button>
                                 </form>
                             </td>
-                            <td class="align-middle">
+                            <td class="align-middle" data-label="Actions">
                                 <form action="{{ url_for('auth.user_account_delete', user_account_id=user_account.id) }}" method="POST">
-                                    <div class="row">
-                                        <button class="btn btn-danger">Delete</button>
-                                    </div>
+                                    <button class="btn btn-sm btn-danger">Delete</button>
                                 </form>
                             </td>
                     </tr>
@@ -138,12 +133,15 @@
                     <div class="col-sm-10">
                         <input class="form-control" id="invite_user_email_{{ account.id }}" name="email" type="text" placeholder="name@example.com">
                     </div>
-                    <div class="my-3 row">
+                </div>
+                <div class="my-3 row">
+                    <label class="form-label col-sm-2 col-form-label">Role</label>
+                    <div class="col-sm-10">
                         {% for role in account.role_choices %}
-                        <label class="form-label col-sm-2 col-form-label" for="invite_{{ role }}_account_{{ account.id }}">{{ role.title() }}</label>
-                        <div class="col-sm-10">
+                        <label class="form-label me-3" for="invite_{{ role }}_account_{{ account.id }}">
                             <input class="form-check-input" id="invite_{{ role }}_account_{{ account.id }}" name="role" type="radio" value="{{ role }}" {% if role == "user" %}checked{% endif %}>
-                        </div>
+                            {{ role.title() }}
+                        </label>
                         {% endfor %}
                     </div>
                 </div>
@@ -153,7 +151,7 @@
         <div class="my-5">
             <h2>Invitations</h2>
             {% if account.invitation_set %}
-            <table>
+            <table class="table responsive-table">
                 <thead>
                     <tr>
                         <th>Email</th>
@@ -166,13 +164,13 @@
                 <tbody>
                     {% for invitation in account.invitation_set %}
                     <tr>
-                        <td>{{ invitation.email }}</td>
-                        <td>{{ invitation.role.title() }}</td>
-                        <td>{{ invitation.status.title() }}</td>
-                        <td>{{ invitation.created }}</td>
-                        <td>
+                        <td data-label="Email">{{ invitation.email }}</td>
+                        <td data-label="Role">{{ invitation.role.title() }}</td>
+                        <td data-label="Status">{{ invitation.status.title() }}</td>
+                        <td data-label="Sent">{{ invitation.created }}</td>
+                        <td data-label="Action">
                             <form action="{{ url_for('auth.invitation_delete', invitation_id=invitation.id) }}" method="POST">
-                                <button class="btn btn-danger">Delete</button>
+                                <button class="btn btn-sm btn-danger">Delete</button>
                             </form>
                         </td>
                     </tr>
